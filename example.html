@@ -1,0 +1,690 @@
+---DATA---
+HTTP/1.0 200 OK
+Server: Medusa/1.12
+Date: Sun, 25 Jan 2026 08:16:59 GMT
+Content-Type: text/html;charset=utf-8
+Pragma: no-cache
+Cache-Control: no-cache
+Expires: Thu, 01 Jan 1970 00:00:00 GMT
+Content-Length: 28581
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <title>Supervisor Status</title>
+  <link href="stylesheets/supervisor.css" rel="stylesheet" type="text/css" />
+  <link href="images/icon.png" rel="icon" type="image/png" />
+</head>
+<body>
+<div id="wrapper">
+
+  <div id="header">
+    <img alt="Supervisor status" src="images/supervisor.gif" />
+  </div>
+
+  <div>
+    <div class="hidden">#</div>
+
+    <form action="index.html" method="post">
+      <ul class="clr" id="buttons">
+        <li class="action-button"><a href="index.html?action=refresh">Refresh</a></li>
+        <li class="action-button"><a href="index.html?action=restartall">Restart All</a></li>
+        <li class="action-button"><a href="index.html?action=stopall">Stop All</a></li>
+      </ul>
+
+      <table cellspacing="0">
+        <thead>
+        <tr>
+          <th class="state">State</th>
+          <th class="desc">Description</th>
+          <th class="name">Name</th>
+          <th class="action">Action</th>
+        </tr>
+        </thead>
+
+        <tbody>
+          <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_app" target="_blank">omi_app</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_app&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_app" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_app/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_app_flashsale_001" target="_blank">omi_app_flashsale_001</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_app_flashsale_001&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_app_flashsale_001" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_app_flashsale_001/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_app_promotion" target="_blank">omi_app_promotion</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_app_promotion&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_app_promotion" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_app_promotion/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_app_promotion_v2" target="_blank">omi_app_promotion_v2</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_app_promotion_v2&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_app_promotion_v2" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_app_promotion_v2/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopped</span></td>
+            <td><span>Jan 25 08:16 AM</span></td>
+            <td><a href="tail.html?processname=omi_beat" target="_blank">omi_beat</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a href="index.html?processname=omi_beat&amp;action=start" name="Start">Start</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_beat&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_beat" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_beat/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopped</span></td>
+            <td><span>Jan 25 08:16 AM</span></td>
+            <td><a href="tail.html?processname=omi_beat_v2" target="_blank">omi_beat_v2</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a href="index.html?processname=omi_beat_v2&amp;action=start" name="Start">Start</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_beat_v2&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_beat_v2" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_beat_v2/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_collection" target="_blank">omi_collection</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_collection&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_collection" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_collection/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_customer_trigger" target="_blank">omi_customer_trigger</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_customer_trigger&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_customer_trigger" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_customer_trigger/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_firestore" target="_blank">omi_firestore</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_firestore&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_firestore" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_firestore/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_inventory_compare" target="_blank">omi_inventory_compare</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_inventory_compare&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_inventory_compare" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_inventory_compare/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_main" target="_blank">omi_main</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_main&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_main" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_main/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_main_schedule" target="_blank">omi_main_schedule</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_main_schedule&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_main_schedule" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_main_schedule/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_main_schedule_v2" target="_blank">omi_main_schedule_v2</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_main_schedule_v2&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_main_schedule_v2" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_main_schedule_v2/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_main_v2" target="_blank">omi_main_v2</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_main_v2&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_main_v2" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_main_v2/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_notification" target="_blank">omi_notification</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_notification&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_notification" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_notification/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product" target="_blank">omi_product</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_app" target="_blank">omi_product_app</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_app&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_app" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_app/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_by_thread_001" target="_blank">omi_product_by_thread_001</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_by_thread_001&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_by_thread_001" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_by_thread_001/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_by_thread_002" target="_blank">omi_product_by_thread_002</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_by_thread_002&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_by_thread_002" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_by_thread_002/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_image" target="_blank">omi_product_image</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_image&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_image" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_image/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_map_sku" target="_blank">omi_product_map_sku</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_map_sku&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_map_sku" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_map_sku/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_publish" target="_blank">omi_product_publish</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_publish&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_publish" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_publish/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_redirect" target="_blank">omi_product_redirect</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_redirect&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_redirect" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_redirect/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_reserved_001" target="_blank">omi_product_reserved_001</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_reserved_001&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_reserved_001" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_reserved_001/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_product_solved" target="_blank">omi_product_solved</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_product_solved&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_solved" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_product_solved/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        <tr class="shade">
+            <td class="status"><span class="statusnominal">stopping</span></td>
+            <td><span></span></td>
+            <td><a href="tail.html?processname=omi_send_sms" target="_blank">omi_send_sms</a></td>
+            <td class="action">
+              <ul>
+                <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a class="hidden" href="#" name="#">Action</a>
+                </li>
+              <li>
+                  <a href="index.html?processname=omi_send_sms&amp;action=clearlog" name="Clear Log">Clear Log</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_send_sms" name="Tail -f Stdout" target="_blank">Tail -f Stdout</a>
+                </li>
+              <li>
+                  <a href="logtail/omi_send_sms/stderr" name="Tail -f Stderr" target="_blank">Tail -f Stderr</a>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </form>
+
+  </div>
+
+  <div class="push">
+  </div>
+</div>
+
+<div class="clr" id="footer">
+  <div class="left">
+    <a href="http://supervisord.org">Supervisor</a> <span>4.2.5</span>
+  </div>
+  <div class="right">
+    &copy; 2006-<span>2026</span> <strong><a href="http://agendaless.com/">Agendaless Consulting and Contributors</a></strong>
+  </div>
+</div>
+</body>
+</html>
+---END DATA---

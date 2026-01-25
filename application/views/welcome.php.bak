@@ -346,15 +346,15 @@
 										
 										<?php if (!isset($procs['error'])): ?>
 										<div class="btn-group btn-group-sm" role="group">
-											<a href="/control/startall/<?php echo $name; ?>" 
+											<a href="<?php echo base_url('control/startall/' . $name); ?>" 
 											   class="btn btn-outline-light btn-sm" title="Start All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
 												<i class="bi bi-play-fill"></i>
 											</a>
-											<a href="/control/restartall/<?php echo $name; ?>" 
+											<a href="<?php echo base_url('control/restartall/' . $name); ?>" 
 											   class="btn btn-outline-light btn-sm" title="Restart All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
 												<i class="bi bi-arrow-clockwise"></i>
 											</a>
-											<a href="/control/stopall/<?php echo $name; ?>" 
+											<a href="<?php echo base_url('control/stopall/' . $name); ?>" 
 											   class="btn btn-outline-light btn-sm" title="Stop All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
 												<i class="bi bi-stop-fill"></i>
 											</a>
@@ -468,16 +468,16 @@
 													<td>
 														<div class="btn-group btn-group-sm" role="group">
 															<?php if ($status == 'RUNNING'): ?>
-																<a href="/control/stop/<?php echo $name . '/' . urlencode($item_name); ?>" 
+																<a href="<?php echo base_url('control/stop/' . $name . '/' . urlencode($item_name)); ?>" 
 																   class="btn btn-outline-danger btn-sm" title="Stop this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-stop-fill"></i>
 																</a>
-																<a href="/control/restart/<?php echo $name . '/' . urlencode($item_name); ?>" 
+																<a href="<?php echo base_url('control/restart/' . $name . '/' . urlencode($item_name)); ?>" 
 																   class="btn btn-outline-warning btn-sm" title="Restart this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-arrow-clockwise"></i>
 																</a>
 															<?php elseif (in_array($status, ['STOPPED', 'EXITED', 'FATAL'])): ?>
-																<a href="/control/start/<?php echo $name . '/' . urlencode($item_name); ?>" 
+																<a href="<?php echo base_url('control/start/' . $name . '/' . urlencode($item_name)); ?>" 
 																   class="btn btn-outline-success btn-sm" title="Start this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-play-fill"></i>
 																</a>
