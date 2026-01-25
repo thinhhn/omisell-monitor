@@ -51,6 +51,7 @@ $route['auth/checkSession'] = "auth/checkSession";
 // Welcome controller routes  
 $route['welcome/ajaxUpdate'] = "welcome/ajaxUpdate";
 $route['welcome/clearCache'] = "welcome/clearCache";
+$route['clearCache'] = "welcome/clearCache";
 
 // Cron controller routes
 $route['cron/updateSupervisorData'] = "cron/updateSupervisorData";

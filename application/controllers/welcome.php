@@ -131,7 +131,7 @@ class Welcome extends MY_Controller
             $this->session->set_flashdata('message', "Đã xóa $deleted file cache");
         }
         
-        redirect('welcome');
+        redirect(base_url());
     }
 }
 

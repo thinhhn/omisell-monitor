@@ -47,7 +47,7 @@
 						<small>Đăng nhập lúc: <?php echo date('H:i:s d/m/Y', $this->session->userdata('login_time')); ?></small>
 					</div>
 					<div class="dropdown-divider"></div>
-					<a class="dropdown-item" href="<?php echo site_url('logout'); ?>">
+					<a class="dropdown-item" href="<?php echo site_url('auth/logout'); ?>">
 						<i class="bi bi-box-arrow-right"></i> Đăng xuất
 					</a>
 				</div>
@@ -436,7 +436,7 @@
 	
 	function clearCache() {
 		if (confirm('Xóa tất cả cache? Điều này có thể làm chậm tải trang tiếp theo.')) {
-			window.location.href = SupervisorMonitor.config.baseUrl + '/welcome/clear_cache';
+			window.location.href = SupervisorMonitor.config.baseUrl + '/welcome/clearCache';
 		}
 	}
 	

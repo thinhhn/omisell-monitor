@@ -232,7 +232,7 @@ class MY_Controller extends CI_Controller
         }
         
         $config = $servers[$server];
-        $url = $config['url'] . ':' . $config['port'];
+        $url = $config['url'] . ':' . $config['port'] . '/RPC2';
         
         // Build XML-RPC request
         $xml_request = $this->buildXmlrpcRequest('supervisor.' . $method, $request);

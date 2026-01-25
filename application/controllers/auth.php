@@ -72,9 +72,14 @@ class Auth extends CI_Controller
      */
     public function logout()
     {
-        $this->session->unset_userdata(['logged_in', 'username', 'login_time']);
+        // Destroy entire session
+        $this->session->sess_destroy();
+        
+        // Set success message in new session
         $this->session->set_flashdata('message', 'Đăng xuất thành công');
-        redirect('auth');
+        
+        // Redirect to login page
+        redirect(base_url() . 'auth');
     }
 
     /**

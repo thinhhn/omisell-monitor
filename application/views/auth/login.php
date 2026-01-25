@@ -168,7 +168,6 @@
             
             <div class="footer-text">
                 <p>Supervisor Monitor System v1.0</p>
-                <p>Tài khoản mặc định: admin/admin123, supervisor/supervisor123, monitor/monitor123</p>
             </div>
         </div>
     </div>
