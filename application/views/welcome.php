@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>Omisell Supervisord Monitoring</title>
+	<title>Supervisord Monitoring</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link type="text/css" rel="stylesheet" href="<?php echo base_url('/css/bootstrap.min.css');?>"/>
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
@@ -134,6 +134,66 @@
 		align-items: center;
 		gap: 4px;
 	}
+	
+	/* Navbar responsive */
+	.navbar {
+		flex-wrap: wrap;
+	}
+	.navbar-brand {
+		font-size: 1.1rem;
+		padding: 0.5rem 1rem;
+	}
+	.navbar-nav {
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+	.nav-item {
+		margin-right: 5px;
+	}
+	.nav-link {
+		padding: 0.5rem 0.75rem;
+		font-size: 0.9rem;
+		white-space: nowrap;
+	}
+	
+	/* Mobile navbar adjustments */
+	@media (max-width: 768px) {
+		.navbar-brand {
+			font-size: 0.95rem;
+			padding: 0.5rem;
+		}
+		.nav-link {
+			padding: 0.4rem 0.5rem;
+			font-size: 0.85rem;
+		}
+		.nav-link i {
+			font-size: 0.9rem;
+		}
+		.badge {
+			font-size: 0.7rem;
+			padding: 0.15em 0.3em;
+		}
+		/* Hide text on mobile, keep icons */
+		.nav-item .nav-link span:not(.badge) {
+			display: none;
+		}
+		.nav-item .nav-link i {
+			margin-right: 0 !important;
+		}
+	}
+	
+	@media (max-width: 576px) {
+		.navbar {
+			padding: 0.25rem 0.5rem;
+		}
+		.navbar-brand {
+			font-size: 0.85rem;
+		}
+		.nav-link {
+			padding: 0.3rem 0.4rem;
+			font-size: 0.8rem;
+		}
+	}
 	</style>
 	<script type="text/javascript" src="<?php echo base_url('/js/jquery-1.10.1.min.js');?>"></script>
 	<script type="text/javascript" src="<?php echo base_url('/js/bootstrap.min.js');?>"></script>
@@ -147,31 +207,28 @@
 <body>
 	<div class="navbar navbar-dark bg-dark navbar-fixed-top py-0">
       <div class="navbar navbar-expand pl-0">
-	  	<a class="navbar-brand" href="<?php echo site_url('');?>">Omisell Supervisord Center</a>
-		<ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+	  	<a class="navbar-brand" href="<?php echo site_url('');?>">
+			<i class="bi bi-display"></i> <span class="d-none d-sm-inline">Supervisord Center</span>
+		</a>
+		<ul class="navbar-nav mr-auto">
 			<li class="nav-item">
 				<a class="nav-link" href="?mute=<?php echo ($muted?-1:1);?>" title="<?php echo $muted ? 'Click to unmute alarm sounds' : 'Click to mute alarm sounds'; ?>" data-bs-toggle="tooltip">
-					<i class="bi bi-<?php echo $muted ? 'volume-mute' : 'volume-up'; ?>"></i>&nbsp;<?php
-					if($muted){
-						echo "Unmute";
-					}else{
-						echo "Mute";
-					}
-				;?></a>
+					<i class="bi bi-<?php echo $muted ? 'volume-mute' : 'volume-up'; ?>"></i> <span class="d-none d-md-inline"><?php echo $muted ? "Unmute" : "Mute"; ?></span>
+				</a>
 			</li>
 			<li class="nav-item">
 				<span class="nav-link" title="Page will auto-refresh every <?php echo $this->config->item('refresh'); ?> seconds" data-bs-toggle="tooltip">
-					<i class="bi bi-arrow-clockwise"></i> Auto-refresh: <span id="countdown" class="badge badge-light"><?php echo $this->config->item('refresh'); ?></span>s
+					<i class="bi bi-arrow-clockwise"></i> <span class="d-none d-md-inline">Auto:</span> <span id="countdown" class="badge badge-light"><?php echo $this->config->item('refresh'); ?></span>s
 				</span>
 			</li>
 			<li class="nav-item">
 				<span class="nav-link" title="Time taken to load this page" data-bs-toggle="tooltip">
-					<i class="bi bi-speedometer"></i> Load: <span class="badge badge-success"><?php echo isset($load_time) ? $load_time : '0'; ?></span>ms
+					<i class="bi bi-speedometer"></i> <span class="d-none d-md-inline">Load:</span> <span class="badge badge-success"><?php echo isset($load_time) ? $load_time : '0'; ?></span>ms
 				</span>
 			</li>
 			<li class="nav-item">
 				<a class="nav-link" href="javascript:location.reload();" title="Manually refresh the page now" data-bs-toggle="tooltip">
-					<i class="bi bi-arrow-repeat"></i> Refresh
+					<i class="bi bi-arrow-repeat"></i> <span class="d-none d-md-inline">Refresh</span>
 				</a>
 			</li>
 		</ul>
@@ -289,7 +346,33 @@
 					<div class="col-lg-4 col-md-6 mb-3">
 						<div class="card h-100">
 							<div class="card-header text-white" style="background: <?php echo $type_name === 'web' ? 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)' : 'linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%)'; ?>;">
-								<!-- Row 1: Server name and actions -->
+								<?php 
+								// Calculate process stats
+								$total_procs = 0;
+								$running_procs = 0;
+								if (is_array($procs) && !isset($procs['error'])) {
+									foreach($procs as $proc) {
+										if (is_array($proc)) {
+											$total_procs++;
+											if (isset($proc['statename']) && $proc['statename'] === 'RUNNING') {
+												$running_procs++;
+											}
+										}
+									}
+								}
+								
+								// Get system stats
+								$server_stats = isset($stats[$name]) ? $stats[$name] : ['available' => false];
+								$cpu_percent = isset($server_stats['cpu_percent']) ? $server_stats['cpu_percent'] : 0;
+								$mem_percent = isset($server_stats['memory_percent']) ? $server_stats['memory_percent'] : 0;
+								$mem_mb = isset($server_stats['memory_mb']) ? $server_stats['memory_mb'] : 0;
+								
+								// Determine color based on usage
+								$cpu_color = $cpu_percent > 80 ? '#dc3545' : ($cpu_percent > 60 ? '#ffc107' : '#28a745');
+								$mem_color = $mem_percent > 80 ? '#dc3545' : ($mem_percent > 60 ? '#ffc107' : '#28a745');
+								?>
+								
+								<!-- Row 1: Server name and action buttons -->
 								<div class="card-header-row">
 									<div class="header-left">
 										<a href="<?php echo $ui_url; ?>" class="text-white text-decoration-none" target="_blank" title="Open Supervisor UI" data-bs-toggle="tooltip">
@@ -297,32 +380,29 @@
 										</a>
 									</div>
 									<div class="header-right">
-									<?php 
-									// Calculate process stats
-									$total_procs = 0;
-									$running_procs = 0;
-									if (is_array($procs) && !isset($procs['error'])) {
-										foreach($procs as $proc) {
-											if (is_array($proc)) {
-												$total_procs++;
-												if (isset($proc['statename']) && $proc['statename'] === 'RUNNING') {
-													$running_procs++;
-												}
-											}
-										}
-									}
-									
-									// Get system stats
-									$server_stats = isset($stats[$name]) ? $stats[$name] : ['available' => false];
-									$cpu_percent = isset($server_stats['cpu_percent']) ? $server_stats['cpu_percent'] : 0;
-									$mem_percent = isset($server_stats['memory_percent']) ? $server_stats['memory_percent'] : 0;
-									$mem_mb = isset($server_stats['memory_mb']) ? $server_stats['memory_mb'] : 0;
-									
-									// Determine color based on usage
-									$cpu_color = $cpu_percent > 80 ? '#dc3545' : ($cpu_percent > 60 ? '#ffc107' : '#28a745');
-									$mem_color = $mem_percent > 80 ? '#dc3545' : ($mem_percent > 60 ? '#ffc107' : '#28a745');
-									?>
-									
+										<?php if (!isset($procs['error'])): ?>
+										<div class="btn-group btn-group-sm" role="group">
+											<a href="/control/startall/<?php echo $name; ?>" 
+											   class="btn btn-outline-light btn-sm" title="Start All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+												<i class="bi bi-play-fill"></i>
+											</a>
+											<a href="/control/restartall/<?php echo $name; ?>" 
+											   class="btn btn-outline-light btn-sm" title="Restart All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+												<i class="bi bi-arrow-clockwise"></i>
+											</a>
+											<a href="/control/stopall/<?php echo $name; ?>" 
+											   class="btn btn-outline-light btn-sm" title="Stop All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+												<i class="bi bi-stop-fill"></i>
+											</a>
+										</div>
+										<?php endif; ?>
+									</div>
+								</div>
+								
+								<!-- Row 2: Stats, IP and Version -->
+								<div class="header-info">
+									<div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+										<!-- System stats -->
 										<div class="server-stats">
 											<?php if (!isset($procs['error'])): ?>
 												<span class="stat-badge" title="Running / Total Processes" data-bs-toggle="tooltip">
@@ -344,33 +424,14 @@
 											<?php endif; ?>
 										</div>
 										
-										<?php if (!isset($procs['error'])): ?>
-										<div class="btn-group btn-group-sm" role="group">
-											<a href="/control/startall/<?php echo $name; ?>" 
-											   class="btn btn-outline-light btn-sm" title="Start All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
-												<i class="bi bi-play-fill"></i>
-											</a>
-											<a href="/control/restartall/<?php echo $name; ?>" 
-											   class="btn btn-outline-light btn-sm" title="Restart All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
-												<i class="bi bi-arrow-clockwise"></i>
-											</a>
-											<a href="/control/stopall/<?php echo $name; ?>" 
-											   class="btn btn-outline-light btn-sm" title="Stop All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
-												<i class="bi bi-stop-fill"></i>
-											</a>
-										</div>
-										<?php endif; ?>
-									</div>
-								</div>
-								
-								<!-- Row 2: Version and IP info -->
-								<div class="header-info">
-									<div>
+										<!-- IP info -->
 										<?php if($this->config->item('show_host')): ?>
-											<i class="bi bi-hdd-network"></i> <span title="Server IP/Host" data-bs-toggle="tooltip"><?php echo $parsed_url['host']; ?></span>
+											<span>
+												<i class="bi bi-hdd-network"></i> <span title="Server IP/Host" data-bs-toggle="tooltip"><?php echo $parsed_url['host']; ?></span>
+											</span>
 										<?php endif; ?>
-									</div>
-									<div>
+										
+										<!-- Version info -->
 										<span title="Supervisor Version" data-bs-toggle="tooltip">
 											<i class="bi bi-info-circle"></i>
 											<?php 
