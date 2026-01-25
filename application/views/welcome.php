@@ -258,7 +258,7 @@
     </div>
 	
 
-	<div class="container mt-3">
+	<div class="container">
 		
 		<!-- Flash Messages -->
 		<?php if ($this->session->flashdata('success')): ?>
