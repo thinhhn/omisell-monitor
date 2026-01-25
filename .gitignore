@@ -3,3 +3,23 @@ composer.phar
 composer.lock
 cookies.txt
 /vendor
+
+# Security: Sensitive configuration files
+application/config/remote_servers.php
+application/config/database.php
+
+# Security: Log files contain sensitive information
+application/logs/*.log
+application/logs/security_audit.log
+
+# Security: SSH keys and credentials
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+*.ppk
+
+# Temporary files
+tmp_*
+*.tmp
+*.bak

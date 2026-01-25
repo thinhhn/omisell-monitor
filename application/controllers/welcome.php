@@ -27,78 +27,6 @@ class Welcome extends MY_Controller
         $this->load->helper('date');
         $servers = $this->config->item('supervisor_servers');
         
-        // Load data from all servers simultaneously (parallel, no cache)
-        $parallel_requests = [];
-        $index = 0;
-        
-        foreach ($servers as $name => $config) {
-            $parallel_requests['list_' . $index] = [
-                'server' => $name,
-                'method' => 'getAllProcessInfo',
-                'request' => []
-            ];
-            $parallel_requests['version_' . $index] = [
-                'server' => $name,
-                'method' => 'getSupervisorVersion',
-                'request' => []
-            ];
-            $parallel_requests['stats_' . $index] = [
-                'server' => $name,
-                'method' => 'getSystemStats',
-                'request' => []
-            ];
-            $index++;
-        }
-        
-        // Execute all requests in parallel - fresh data every time
-        $responses = $this->_parallel_requests_no_cache($parallel_requests);
-        
-        // Process parallel responses
-        $index = 0;
-        foreach ($servers as $name => $config) {
-            $data['list'][$name] = isset($responses['list_' . $index]) 
-                ? $responses['list_' . $index] 
-                : ['error' => 'Failed to get process info'];
-                
-            $data['version'][$name] = isset($responses['version_' . $index]) 
-                ? $responses['version_' . $index] 
-                : ['error' => 'Failed to get version'];
-            
-            // Get system stats (CPU/RAM) via custom method or parse from system
-            $data['stats'][$name] = $this->_getServerStats($name, $config);
-            $index++;
-        }
-        
-        $data['cfg'] = $servers;
-        $data['load_time'] = round((microtime(true) - $data['load_time_start']) * 1000, 2);
-        
-        $this->load->view('welcome', $data);
-    }
-    
-    /**
-     * Modern dashboard view (V2) with Tailwind CSS
-     */
-    public function v2()
-    {
-        $mute = $this->input->get('mute');
-        
-        if ($this->input->get('mute') == 1) {
-            $mute_time = time() + 600;
-            setcookie('mute', $mute_time, $mute_time, '/');
-            redirect('welcome/v2');
-        }
-        
-        if ($this->input->get('mute') == -1) {
-            setcookie('mute', 0, time() - 1, '/');
-            redirect('welcome/v2');
-        }
-
-        $data['muted'] = $this->input->cookie('mute');
-        $data['load_time_start'] = microtime(true);
-
-        $this->load->helper('date');
-        $servers = $this->config->item('supervisor_servers');
-        
         // Prepare data variables
         $data['servers'] = $servers;
         $data['alert'] = false;
@@ -160,7 +88,88 @@ class Welcome extends MY_Controller
         $data['cfg'] = $servers;
         $data['load_time'] = round((microtime(true) - $data['load_time_start']) * 1000, 2);
         
-        $this->load->view('welcome_v2', $data);
+        $this->load->view('welcome', $data);
+    }
+    
+    /**
+     * Classic dashboard view (old version) - kept for backward compatibility
+     */
+    public function v2()
+    {
+        // Redirect to new default view for backward compatibility
+        redirect('welcome');
+    }
+    
+    /**
+     * Old classic view
+     */
+    public function classic()
+    {
+        $mute = $this->input->get('mute');
+        
+        if ($this->input->get('mute') == 1) {
+            $mute_time = time() + 600;
+            setcookie('mute', $mute_time, $mute_time, '/');
+            redirect('welcome/classic');
+        }
+        
+        if ($this->input->get('mute') == -1) {
+            setcookie('mute', 0, time() - 1, '/');
+            redirect('welcome/classic');
+        }
+
+        $data['muted'] = $this->input->cookie('mute');
+        $data['load_time_start'] = microtime(true);
+
+        $this->load->helper('date');
+        $servers = $this->config->item('supervisor_servers');
+        
+        // Load data from all servers simultaneously (parallel, no cache)
+        $parallel_requests = [];
+        $index = 0;
+        
+        foreach ($servers as $name => $config) {
+            $parallel_requests['list_' . $index] = [
+                'server' => $name,
+                'method' => 'getAllProcessInfo',
+                'request' => []
+            ];
+            $parallel_requests['version_' . $index] = [
+                'server' => $name,
+                'method' => 'getSupervisorVersion',
+                'request' => []
+            ];
+            $parallel_requests['stats_' . $index] = [
+                'server' => $name,
+                'method' => 'getSystemStats',
+                'request' => []
+            ];
+            $index++;
+        }
+        
+        // Execute all requests in parallel - fresh data every time
+        $responses = $this->_parallel_requests_no_cache($parallel_requests);
+        
+        // Process parallel responses
+        $index = 0;
+        foreach ($servers as $name => $config) {
+            $data['list'][$name] = isset($responses['list_' . $index]) 
+                ? $responses['list_' . $index] 
+                : ['error' => 'Failed to get process info'];
+                
+            $data['version'][$name] = isset($responses['version_' . $index]) 
+                ? $responses['version_' . $index] 
+                : ['error' => 'Failed to get version'];
+            
+            // Get system stats (CPU/RAM) via custom method or parse from system
+            $data['stats'][$name] = $this->_getServerStats($name, $config);
+            $index++;
+        }
+        
+        $data['cfg'] = $servers;
+        $data['load_time'] = round((microtime(true) - $data['load_time_start']) * 1000, 2);
+        
+        $this->load->view('welcome_old', $data);
     }
     
     /**

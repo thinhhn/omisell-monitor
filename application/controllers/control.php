@@ -10,10 +10,18 @@ if (! defined('BASEPATH')) {
  */
 class Control extends MY_Controller
 {
+    public $security_helper;
+    
     public function __construct()
     {
         parent::__construct();
         $this->load->config('supervisor');
+        
+        // Load security config first
+        $this->load->config('security');
+        
+        // Load security helper library
+        $this->load->library('Security_helper');
         
         // Prevent caching for control actions (important for Cloudflare/CDN)
         header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -26,6 +34,27 @@ class Control extends MY_Controller
      */
     public function start($server, $worker)
     {
+        // Security: Validate inputs
+        $server_validation = $this->security_helper->validate_server_name($server);
+        $worker_validation = $this->security_helper->validate_process_name($worker);
+        
+        if (!$server_validation['valid']) {
+            $this->session->set_flashdata('error', 'Security: ' . $server_validation['error']);
+            redirect('');
+            return;
+        }
+        
+        if (!$worker_validation['valid']) {
+            $this->session->set_flashdata('error', 'Security: ' . $worker_validation['error']);
+            redirect('');
+            return;
+        }
+        
+        $this->security_helper->log_security_event('START_PROCESS', [
+            'server' => $server,
+            'worker' => $worker
+        ]);
+        
         $result = $this->_request($server, 'startProcess', [$worker, true], false);
         
         if (isset($result['error'])) {
@@ -58,6 +87,27 @@ class Control extends MY_Controller
      */
     public function stop($server, $worker)
     {
+        // Security: Validate inputs
+        $server_validation = $this->security_helper->validate_server_name($server);
+        $worker_validation = $this->security_helper->validate_process_name($worker);
+        
+        if (!$server_validation['valid']) {
+            $this->session->set_flashdata('error', 'Security: ' . $server_validation['error']);
+            redirect('');
+            return;
+        }
+        
+        if (!$worker_validation['valid']) {
+            $this->session->set_flashdata('error', 'Security: ' . $worker_validation['error']);
+            redirect('');
+            return;
+        }
+        
+        $this->security_helper->log_security_event('STOP_PROCESS', [
+            'server' => $server,
+            'worker' => $worker
+        ]);
+        
         $result = $this->_request($server, 'stopProcess', [$worker, true], false);
         
         if (isset($result['error'])) {
@@ -90,6 +140,27 @@ class Control extends MY_Controller
      */
     public function restart($server, $worker)
     {
+        // Security: Validate inputs
+        $server_validation = $this->security_helper->validate_server_name($server);
+        $worker_validation = $this->security_helper->validate_process_name($worker);
+        
+        if (!$server_validation['valid']) {
+            $this->session->set_flashdata('error', 'Security: ' . $server_validation['error']);
+            redirect('');
+            return;
+        }
+        
+        if (!$worker_validation['valid']) {
+            $this->session->set_flashdata('error', 'Security: ' . $worker_validation['error']);
+            redirect('');
+            return;
+        }
+        
+        $this->security_helper->log_security_event('RESTART_PROCESS', [
+            'server' => $server,
+            'worker' => $worker
+        ]);
+        
         $log = []; // Debug log
         
         // Get initial state for reference
@@ -228,6 +299,63 @@ class Control extends MY_Controller
             $this->session->set_flashdata('error', "Failed to clear logs for $worker: " . $result['error']);
         } else {
             $this->session->set_flashdata('success', "Logs cleared for process $worker on $server");
+        }
+        
+        redirect('');
+    }
+    
+    /**
+     * Kill a specific process using remote purge script
+     */
+    public function kill($server, $worker)
+    {
+        $log = [];
+        $log[] = "Kill request for: $worker on $server";
+        
+        // Get server configuration
+        $servers = $this->config->item('supervisor_servers');
+        if (!isset($servers[$server])) {
+            $this->session->set_flashdata('error', "Server $server not found");
+            redirect('');
+            return;
+        }
+        
+        $server_config = $servers[$server];
+        
+        // Parse worker name - if it's group:name format, extract just the name
+        $process_name = $worker;
+        if (strpos($worker, ':') !== false) {
+            $parts = explode(':', $worker);
+            $process_name = $parts[1];
+        }
+        
+        $log[] = "Process name: $process_name";
+        
+        // Execute remote purge script via SSH
+        $url = parse_url($server_config['url']);
+        $host = $url['host'];
+        
+        // Build SSH command with auto-accept host key
+        $ssh_options = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null";
+        $ssh_command = "ssh {$ssh_options} root@{$host} 'sh /data/code/omisell-backend/deploy/purge_remote.sh {$process_name}'";
+        $log[] = "SSH command: $ssh_command";
+        
+        // Execute command
+        $output = [];
+        $return_var = 0;
+        exec($ssh_command . " 2>&1", $output, $return_var);
+        
+        $log[] = "Return code: $return_var";
+        $log[] = "Output: " . implode("\n", $output);
+        
+        if ($return_var === 0) {
+            $this->session->set_flashdata('success', "Process $worker killed successfully on $server. Output: " . implode(", ", $output));
+        } else {
+            $error_msg = "Failed to kill $worker on $server. ";
+            $error_msg .= "Return code: $return_var. ";
+            $error_msg .= "Output: " . implode(", ", $output);
+            $error_msg .= " | Log: " . implode(' | ', $log);
+            $this->session->set_flashdata('error', $error_msg);
         }
         
         redirect('');
