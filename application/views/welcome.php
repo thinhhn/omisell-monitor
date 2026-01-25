@@ -228,15 +228,15 @@
 							<?php if (!isset($procs['error'])): ?>
 							<div class="server-controls mt-2">
 								<div class="btn-group" role="group">
-									<a href="<?php echo site_url('control/startall/' . $name); ?>" 
+									<a href="<?php echo base_url('control/startall/' . $name); ?>" 
 									   class="btn btn-success btn-sm" title="Start All">
 										<i class="bi bi-play-fill"></i> Start All
 									</a>
-									<a href="<?php echo site_url('control/restartall/' . $name); ?>" 
+									<a href="<?php echo base_url('control/restartall/' . $name); ?>" 
 									   class="btn btn-warning btn-sm" title="Restart All">
 										<i class="bi bi-arrow-clockwise"></i> Restart All
 									</a>
-									<a href="<?php echo site_url('control/stopall/' . $name); ?>" 
+									<a href="<?php echo base_url('control/stopall/' . $name); ?>" 
 									   class="btn btn-danger btn-sm" title="Stop All">
 										<i class="bi bi-stop-fill"></i> Stop All
 									</a>
@@ -328,16 +328,16 @@
 												<td>
 													<div class="btn-group btn-group-sm" role="group">
 														<?php if ($status == 'RUNNING'): ?>
-															<a href="<?php echo site_url('control/stop/' . $name . '/' . $item_name); ?>" 
+															<a href="<?php echo base_url('control/stop/' . $name . '/' . urlencode($item_name)); ?>" 
 															   class="btn btn-outline-danger btn-sm" title="Stop">
 																<i class="bi bi-stop-fill"></i>
 															</a>
-															<a href="<?php echo site_url('control/restart/' . $name . '/' . $item_name); ?>" 
+															<a href="<?php echo base_url('control/restart/' . $name . '/' . urlencode($item_name)); ?>" 
 															   class="btn btn-outline-warning btn-sm" title="Restart">
 																<i class="bi bi-arrow-clockwise"></i>
 															</a>
 														<?php elseif (in_array($status, ['STOPPED', 'EXITED', 'FATAL'])): ?>
-															<a href="<?php echo site_url('control/start/' . $name . '/' . $item_name); ?>" 
+															<a href="<?php echo base_url('control/start/' . $name . '/' . urlencode($item_name)); ?>" 
 															   class="btn btn-outline-success btn-sm" title="Start">
 																<i class="bi bi-play-fill"></i>
 															</a>

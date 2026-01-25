@@ -29,7 +29,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "Process $worker started successfully on $server");
         }
         
-        redirect('');
+        redirect(base_url());
     }
 
     /**
@@ -45,7 +45,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "All processes started successfully on server $server");
         }
         
-        redirect('');
+        redirect(base_url());
     }
 
     /**
@@ -61,7 +61,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "Process $worker stopped successfully on $server");
         }
         
-        redirect('');
+        redirect(base_url());
     }
 
     /**
@@ -77,7 +77,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "All processes stopped successfully on server $server");
         }
         
-        redirect('');
+        redirect(base_url());
     }
 
     /**
@@ -90,7 +90,7 @@ class Control extends MY_Controller
         
         if (isset($stop_result['error'])) {
             $this->session->set_flashdata('error', "Failed to stop $worker for restart: " . $stop_result['error']);
-            redirect('');
+            redirect(base_url());
             return;
         }
         
@@ -106,7 +106,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "Process $worker restarted successfully on $server");
         }
         
-        redirect('');
+        redirect(base_url());
     }
 
     /**
@@ -119,7 +119,7 @@ class Control extends MY_Controller
         
         if (isset($stop_result['error'])) {
             $this->session->set_flashdata('error', "Failed to stop processes for restart on $server: " . $stop_result['error']);
-            redirect('');
+            redirect(base_url());
             return;
         }
         
@@ -135,7 +135,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "All processes restarted successfully on server $server");
         }
         
-        redirect('');
+        redirect(base_url());
     }
 
     /**
@@ -151,7 +151,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "Logs cleared for process $worker on $server");
         }
         
-        redirect('');
+        redirect(base_url());
     }
 
     /**
