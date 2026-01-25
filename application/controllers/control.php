@@ -107,7 +107,7 @@ class Control extends MY_Controller
         // Step 2: Wait and verify stop
         $stop_verified = false;
         $log[] = "Waiting for process to stop...";
-        for ($i = 0; $i < 15; $i++) { // Increased from 10 to 15
+        for ($i = 0; $i < 30; $i++) { // Increased to 30 seconds
             sleep(1);
             $check_info = $this->_request($server, 'getProcessInfo', [$worker], false);
             $current_state = isset($check_info['statename']) ? $check_info['statename'] : 'UNKNOWN';
@@ -121,13 +121,13 @@ class Control extends MY_Controller
         }
         
         if (!$stop_verified) {
-            $log[] = "WARNING: Process did not stop in time";
+            $log[] = "WARNING: Process did not stop in time (30s timeout)";
             $this->session->set_flashdata('warning', "Process $worker may not have stopped completely before restart attempt");
         }
         
         // Wait a bit longer to ensure clean shutdown
-        sleep(2);
-        $log[] = "Waited 2s for clean shutdown";
+        sleep(3);
+        $log[] = "Waited 3s for clean shutdown";
         
         // Step 3: Start the process
         $log[] = "Attempting to start process...";
@@ -145,19 +145,25 @@ class Control extends MY_Controller
         $start_verified = false;
         $final_state = 'UNKNOWN';
         $log[] = "Waiting for process to start...";
-        for ($i = 0; $i < 20; $i++) { // Increased from 10 to 20
+        for ($i = 0; $i < 60; $i++) { // Increased to 60 seconds (1 minute)
             sleep(1);
             $final_info = $this->_request($server, 'getProcessInfo', [$worker], false);
             $final_state = isset($final_info['statename']) ? $final_info['statename'] : 'UNKNOWN';
-            $log[] = "Start check $i: state=$final_state";
+            
+            // Only log every 5 seconds to reduce log spam
+            if ($i % 5 == 0 || $final_state === 'RUNNING' || $final_state === 'BACKOFF' || $final_state === 'FATAL') {
+                $log[] = "Start check $i: state=$final_state";
+            }
             
             if ($final_state === 'RUNNING') {
                 $start_verified = true;
-                $log[] = "Process started and running";
+                $log[] = "Process started and running successfully";
                 break;
             } elseif ($final_state === 'STARTING') {
                 // Keep waiting, it's starting
-                $log[] = "Process is starting...";
+                if ($i % 10 == 0) {
+                    $log[] = "Process is still starting... (${i}s elapsed)";
+                }
             } elseif ($final_state === 'BACKOFF' || $final_state === 'FATAL') {
                 // Process failed to start properly
                 $log[] = "Process entered error state: $final_state";
