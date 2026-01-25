@@ -10,7 +10,7 @@
 	
 	<!-- CSS Fixes for UI -->
 	<style>
-	.container { max-width: 100%; padding: 0 15px; }
+	.container { max-width: 100%; padding: 0; }
 	.card { border: 1px solid #dee2e6; border-radius: 0.25rem; margin-bottom: 1rem; background: white; }
 	.card-header { 
 		background-color: #007bff; 
