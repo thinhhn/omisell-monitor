@@ -54,6 +54,30 @@
 			</li>
 		</ul>
 		<?php endif; ?>
+		
+		<!-- Flash Messages -->
+		<div class="container mt-3">
+			<?php if ($this->session->flashdata('success')): ?>
+				<div class="alert alert-success alert-dismissible fade show" role="alert">
+					<i class="bi bi-check-circle"></i> <?php echo $this->session->flashdata('success'); ?>
+					<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+				</div>
+			<?php endif; ?>
+			
+			<?php if ($this->session->flashdata('error')): ?>
+				<div class="alert alert-danger alert-dismissible fade show" role="alert">
+					<i class="bi bi-exclamation-triangle"></i> <?php echo $this->session->flashdata('error'); ?>
+					<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+				</div>
+			<?php endif; ?>
+			
+			<?php if ($this->session->flashdata('warning')): ?>
+				<div class="alert alert-warning alert-dismissible fade show" role="alert">
+					<i class="bi bi-exclamation-triangle"></i> <?php echo $this->session->flashdata('warning'); ?>
+					<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+				</div>
+			<?php endif; ?>
+		</div>
       </div>
     </div>
 	
@@ -99,105 +123,212 @@
 		<div class="row">
 				<?php
 				$alert = false;
-				foreach($list as $name=>$procs){
-					$parsed_url = parse_url($cfg[$name]['url']);
-					if ( isset($cfg[$name]['username']) && isset($cfg[$name]['password']) ){
-						$base_url = 'http://' . $cfg[$name]['username'] . ':' . $cfg[$name]['password'] . '@';
-					}else{
-						$base_url = 'http://';
+				$break_count = 0;
+				$total_servers = count($cfg);
+				$cols_per_row = $this->config->item('supervisor_cols') ?: 3;
+				
+				foreach($list as $name => $procs){
+					// Handle server configuration
+					if (!isset($cfg[$name])) {
+						continue; // Skip if server config not found
 					}
-					$ui_url = $base_url . $parsed_url['host'] . ':' . $cfg[$name]['port']. '/';
+					
+					$server_config = $cfg[$name];
+					$parsed_url = parse_url($server_config['url']);
+					
+					// Build UI URL for supervisor web interface
+					if (isset($server_config['username']) && isset($server_config['password'])) {
+						$ui_url = 'http://' . $server_config['username'] . ':' . $server_config['password'] . '@' . $parsed_url['host'] . ':' . $server_config['port'] . '/';
+					} else {
+						$ui_url = 'http://' . $parsed_url['host'] . ':' . $server_config['port'] . '/';
+					}
+					
+					// Determine column width based on configuration
+					$col_class = 'col-xl-4 col-lg-6 col-md-6'; // Default for 3 columns
+					if ($cols_per_row == 2) {
+						$col_class = 'col-xl-6 col-lg-6 col-md-6';
+					}
 				?>
-				<div class="col-xl-4 col-lg-6 col-md-6">
-					<table class="table table-bordered table-condensed table-striped">
-						<tr><th colspan="4">
-							<a href="<?php echo $ui_url; ?>"><?php echo $name; ?></a> <?php if($this->config->item('show_host')){ ?><i><?php echo $parsed_url['host']; ?></i><?php } ?>
-							<?php
-							if(isset($cfg[$name]['username'])){echo '<i class="icon-lock icon-green" style="color:blue" title="Authenticated server connection"></i>';}
-							echo '&nbsp;<i>'.$version[$name].'</i>';
-							if(!isset($procs['error'])){
-							?>
-							<span class="server-btns float-right">
-								<a href="<?php echo site_url('/control/stopall/'.$name); ?>" class="btn btn-sm btn-dark" type="button"><i class="glyphicon glyphicon-stop"></i> Stop all</a>
-								<a href="<?php echo site_url('/control/startall/'.$name); ?>" class="btn btn-sm btn-success" type="button"><i class="glyphicon glyphicon-play"></i> Start all</a>
-								<a href="<?php echo site_url('/control/restartall/'.$name); ?>" class="btn btn-sm btn-primary" type="button"><i class="glyphicon glyphicon-refresh"></i> Restart all</a>
-							</span>
-							<?php
-							}
-							?>
-						</th></tr>
-						<?php
-						$CI = &get_instance();
-						foreach($procs as $item){
-
-							if($item['group'] != $item['name']) $item_name = $item['group'].":".$item['name'];
-							else $item_name = $item['name'];
-							
-							$check = $CI->_request($name,'readProcessStderrLog',array($item_name,-1000,0));
-							if(is_array($check)) $check = print_r($check,1);
-							
-							if(!is_array($item)){
-									// Not having array means that we have error.
-									echo '<tr><td colspan="4">'.$item.'</td></tr>';
-									echo '<tr><td colspan="4">For Troubleshooting <a href="https://github.com/mlazarov/supervisord-monitor#troubleshooting" target="_blank">check this guide</a></td></tr>';
-									continue;
-							}
-
-							$pid = $uptime = '&nbsp;';
-							$status = $item['statename'];
-							if($status=='RUNNING'){
-								$class = 'success';
-								list($pid,$uptime) = explode(",",$item['description']);
-							}
-							elseif($status=='STARTING') $class = 'info';
-							elseif($status=='FATAL') { $class = 'danger'; $alert = true; }
-							elseif($status=='STOPPED') $class = 'dark';
-							else $class = 'error';
-
-							$uptime = str_replace("uptime ","",$uptime);
-							?>
-							<tr>
-								<td><?php
-									echo $item_name;
-									// if($check){
-									// 	$alert = true;
-									// 	echo '<span class="float-right">
-									// 			<a href="'.site_url('/control/clear/'.$name.'/'.$item_name).'" id="'.$name.'_'.$item_name.
-									// 			'" onclick="return false" data-toggle="popover" data-message="'.htmlspecialchars($check).'" data-original-title="'.
-									// 			$item_name.'@'.$name.'" class="pop btn btn-mini btn-danger"><img src="' . base_url('/img/alert_icon.png') . '" /></a>
-									// 		</span>';
-									// }
-									// ?>
-								</td>
-								<td width="10"><span class="badge badge-<?php echo $class;?>"><?php echo $status;?></span></td>
-								<td width="80" style="text-align:right"><?php echo $uptime;?></td>
-								<td style="width:1%">
-									<!--div class="btn-group">
-										<button class="btn btn-mini">Action</button>
-										<button class="btn btn-mini dropdown-toggle" data-toggle="dropdown">
-											<span class="caret"></span>
-										</button>
-										<ul class="dropdown-menu">
-											<li><a href="test">Restart</a></li>
-											<li><a href="zz">Stop</a></li>
-										</ul>
-									</div//-->
-									<div class="actions">
-										<?php if($status=='RUNNING'){ ?>
-										<a href="<?php echo site_url('/control/stop/'.$name.'/'.$item_name);?>" class="btn btn-sm omi-btn-sm btn-dark" type="button"><i class="bi bi-stop-fill"></i></a>
-										<a href="<?php echo site_url('/control/restart/'.$name.'/'.$item_name);?>" class="btn btn-sm omi-btn-sm btn-dark" type="button"><i class="bi bi-arrow-counterclockwise"></i></a>
-										<?php } if($status=='STOPPED' || $status == 'EXITED' || $status=='FATAL'){ ?>
-										<a href="<?php echo site_url('/control/start/'.$name.'/'.$item_name);?>" class="btn btn-sm omi-btn-sm btn-dark" type="button"><i class="bi bi-play-fill"></i></a>
-										<?php } ?>
+				<div class="<?php echo $col_class; ?>">
+					<div class="card mb-3">
+						<div class="card-header bg-primary text-white">
+							<div class="d-flex justify-content-between align-items-center">
+								<div>
+									<h6 class="mb-0">
+										<a href="<?php echo $ui_url; ?>" class="text-white text-decoration-none" target="_blank">
+											<i class="bi bi-server"></i> <?php echo $name; ?>
+										</a>
+										<?php if($this->config->item('show_host')): ?>
+											<small class="ms-2 opacity-75">(<?php echo $parsed_url['host']; ?>)</small>
+										<?php endif; ?>
 									</div>
-								</td>
-							</tr>
-							<?php
-						}
-
-						?>
-					</table>				
+								<div class="server-info">
+									<?php if(isset($server_config['username'])): ?>
+										<i class="bi bi-shield-lock text-warning" title="Authenticated Connection"></i>
+									<?php endif; ?>
+									<small class="ms-1 opacity-75">
+										<?php 
+										if (isset($version[$name]) && !isset($version[$name]['error'])) {
+											echo $version[$name];
+										} else {
+											echo 'Unknown';
+										}
+										?>
+									</small>
+								</div>
+							</div>
+							
+							<?php if (!isset($procs['error'])): ?>
+							<div class="server-controls mt-2">
+								<div class="btn-group" role="group">
+									<a href="<?php echo site_url('control/startall/' . $name); ?>" 
+									   class="btn btn-success btn-sm" title="Start All">
+										<i class="bi bi-play-fill"></i> Start All
+									</a>
+									<a href="<?php echo site_url('control/restartall/' . $name); ?>" 
+									   class="btn btn-warning btn-sm" title="Restart All">
+										<i class="bi bi-arrow-clockwise"></i> Restart All
+									</a>
+									<a href="<?php echo site_url('control/stopall/' . $name); ?>" 
+									   class="btn btn-danger btn-sm" title="Stop All">
+										<i class="bi bi-stop-fill"></i> Stop All
+									</a>
+								</div>
+							</div>
+							<?php endif; ?>
+						</div>
+						
+						<div class="card-body p-0">
+							<?php if (isset($procs['error'])): ?>
+								<!-- Error State -->
+								<div class="alert alert-danger m-3 mb-0">
+									<h6><i class="bi bi-exclamation-triangle"></i> Connection Error</h6>
+									<p class="mb-2"><?php echo htmlspecialchars($procs['error']); ?></p>
+									<small class="text-muted">
+										Troubleshooting: 
+										<a href="<?php echo site_url('debug/testConnections'); ?>" target="_blank">Test Connection</a>
+									</small>
+								</div>
+							<?php else: ?>
+								<!-- Process List -->
+								<div class="table-responsive">
+									<table class="table table-sm table-hover mb-0">
+										<thead class="table-light">
+											<tr>
+												<th>Process</th>
+												<th>Status</th>
+												<th>Uptime</th>
+												<th width="100">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
+											<?php 
+											if (is_array($procs) && !empty($procs)):
+												foreach($procs as $item):
+													// Skip if not an array (error case)
+													if (!is_array($item)) {
+														echo '<tr><td colspan="4" class="text-danger">' . htmlspecialchars($item) . '</td></tr>';
+														continue;
+													}
+													
+													// Process name handling
+													$item_name = ($item['group'] != $item['name']) 
+														? $item['group'] . ':' . $item['name'] 
+														: $item['name'];
+													
+													// Status and styling
+													$status = $item['statename'] ?? 'UNKNOWN';
+													$description = $item['description'] ?? '';
+													$pid = $uptime = '';
+													
+													// Parse description for running processes
+													if ($status == 'RUNNING' && $description) {
+														$desc_parts = explode(',', $description);
+														$pid = isset($desc_parts[0]) ? trim($desc_parts[0]) : '';
+														$uptime = isset($desc_parts[1]) ? str_replace('uptime ', '', trim($desc_parts[1])) : '';
+													}
+													
+													// Status badge classes
+													$badge_class = 'secondary';
+													switch ($status) {
+														case 'RUNNING': $badge_class = 'success'; break;
+														case 'STARTING': $badge_class = 'info'; break;
+														case 'STOPPING': $badge_class = 'warning'; break;
+														case 'STOPPED': $badge_class = 'secondary'; break;
+														case 'EXITED': $badge_class = 'secondary'; break;
+														case 'FATAL': $badge_class = 'danger'; $alert = true; break;
+														case 'BACKOFF': $badge_class = 'warning'; break;
+														default: $badge_class = 'dark';
+													}
+											?>
+											<tr>
+												<td>
+													<strong><?php echo htmlspecialchars($item_name); ?></strong>
+													<?php if ($pid): ?>
+														<br><small class="text-muted">PID: <?php echo $pid; ?></small>
+													<?php endif; ?>
+												</td>
+												<td>
+													<span class="badge bg-<?php echo $badge_class; ?>">
+														<?php echo $status; ?>
+													</span>
+												</td>
+												<td>
+													<small class="text-muted">
+														<?php echo $uptime ? $uptime : '—'; ?>
+													</small>
+												</td>
+												<td>
+													<div class="btn-group btn-group-sm" role="group">
+														<?php if ($status == 'RUNNING'): ?>
+															<a href="<?php echo site_url('control/stop/' . $name . '/' . $item_name); ?>" 
+															   class="btn btn-outline-danger btn-sm" title="Stop">
+																<i class="bi bi-stop-fill"></i>
+															</a>
+															<a href="<?php echo site_url('control/restart/' . $name . '/' . $item_name); ?>" 
+															   class="btn btn-outline-warning btn-sm" title="Restart">
+																<i class="bi bi-arrow-clockwise"></i>
+															</a>
+														<?php elseif (in_array($status, ['STOPPED', 'EXITED', 'FATAL'])): ?>
+															<a href="<?php echo site_url('control/start/' . $name . '/' . $item_name); ?>" 
+															   class="btn btn-outline-success btn-sm" title="Start">
+																<i class="bi bi-play-fill"></i>
+															</a>
+														<?php endif; ?>
+													</div>
+												</td>
+											</tr>
+											<?php 
+												endforeach;
+											else:
+											?>
+											<tr>
+												<td colspan="4" class="text-center text-muted py-3">
+													<i class="bi bi-inbox"></i> No processes found
+												</td>
+											</tr>
+											<?php endif; ?>
+										</tbody>
+									</table>
+								</div>
+							<?php endif; ?>
+						</div>
+					</div>
 				</div>
+				
+				<?php
+					// Handle column breaks for better layout
+					if (isset($server_config['is_break']) && $server_config['is_break']) {
+						echo '</div><div class="row">';
+						$break_count = 0;
+					} else {
+						$break_count++;
+						if ($break_count % $cols_per_row == 0) {
+							echo '</div><div class="row">';
+						}
+					}
+				?>
+				<?php } // End foreach servers ?>
 				<?php
 				}
 				if($alert && !$muted && $this->config->item('enable_alarm')){
