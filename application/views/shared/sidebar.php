@@ -1,9 +1,10 @@
+<!-- Mobile Menu Toggle Button (Outside sidebar, fixed on screen) -->
+<button id="mobile-menu-toggle" class="text-white p-3 rounded-lg bg-slate-800 hover:bg-slate-700 shadow-lg">
+    <i class="fas fa-bars text-lg" id="menu-icon"></i>
+</button>
+
 <!-- Sidebar -->
 <aside class="w-full lg:w-64 bg-slate-900 text-white flex-shrink-0 sidebar-fixed">
-    <!-- Mobile Menu Toggle Button -->
-    <button id="mobile-menu-toggle" class="lg:hidden absolute top-4 right-4 z-50 text-white p-2 rounded-lg bg-slate-800 hover:bg-slate-700">
-        <i class="fas fa-bars" id="menu-icon"></i>
-    </button>
     
     <div id="sidebar-content" class="h-full flex flex-col">
         <!-- Header -->
@@ -59,37 +60,3 @@
     </div>
 </aside>
 
-<script>
-// Mobile menu toggle
-document.addEventListener('DOMContentLoaded', function() {
-    const toggleBtn = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.querySelector('.sidebar-fixed');
-    const menuIcon = document.getElementById('menu-icon');
-    
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('mobile-menu-open');
-            
-            // Toggle icon
-            if (sidebar.classList.contains('mobile-menu-open')) {
-                menuIcon.classList.remove('fa-bars');
-                menuIcon.classList.add('fa-times');
-            } else {
-                menuIcon.classList.remove('fa-times');
-                menuIcon.classList.add('fa-bars');
-            }
-        });
-        
-        // Close menu when clicking outside
-        document.addEventListener('click', function(event) {
-            if (window.innerWidth <= 1024) {
-                if (!sidebar.contains(event.target) && sidebar.classList.contains('mobile-menu-open')) {
-                    sidebar.classList.remove('mobile-menu-open');
-                    menuIcon.classList.remove('fa-times');
-                    menuIcon.classList.add('fa-bars');
-                }
-            }
-        });
-    }
-});
-</script>

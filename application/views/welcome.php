@@ -172,12 +172,52 @@
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group-card">
                             <!-- Server Header -->
                             <div class="bg-gradient-to-r from-<?php echo $group_config['color']; ?>-500 to-<?php echo $group_config['color']; ?>-600 p-4 text-white">
-                                <div class="flex justify-between items-center">
-                                    <div class="flex items-center gap-3">
-                                        <i class="fas fa-server text-2xl opacity-80"></i>
-                                        <div>
-                                            <h5 class="font-bold text-lg"><?php echo $server_name; ?></h5>
-                                            <div class="flex items-center gap-3 text-xs opacity-90 mt-1">
+                                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                                        <i class="fas fa-server text-2xl opacity-80 flex-shrink-0"></i>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-3 flex-wrap">
+                                                <h5 class="font-bold text-lg"><?php echo $server_name; ?></h5>
+                                                <?php if (!$has_error): 
+                                                    $server_procs = is_array($procs) ? $procs : [];
+                                                    $server_total = count($server_procs);
+                                                    $server_running = 0;
+                                                    $server_stopped = 0;
+                                                    $server_fatal = 0;
+                                                    foreach ($server_procs as $p) {
+                                                        if (is_array($p) && isset($p['statename'])) {
+                                                            if ($p['statename'] === 'RUNNING') {
+                                                                $server_running++;
+                                                            } elseif (in_array($p['statename'], ['STOPPED', 'EXITED'])) {
+                                                                $server_stopped++;
+                                                            } elseif ($p['statename'] === 'FATAL') {
+                                                                $server_fatal++;
+                                                            }
+                                                        }
+                                                    }
+                                                ?>
+                                                <!-- Process Summary Stats -->
+                                                <div class="flex items-center gap-2 text-xs">
+                                                    <span class="px-2 py-1 bg-emerald-500 bg-opacity-30 rounded-md font-bold border border-emerald-400 border-opacity-30">
+                                                        <i class="fas fa-check-circle mr-1"></i><?php echo $server_running; ?> Running
+                                                    </span>
+                                                    <?php if ($server_stopped > 0): ?>
+                                                    <span class="px-2 py-1 bg-slate-500 bg-opacity-30 rounded-md font-bold border border-slate-400 border-opacity-30">
+                                                        <i class="fas fa-stop-circle mr-1"></i><?php echo $server_stopped; ?> Stopped
+                                                    </span>
+                                                    <?php endif; ?>
+                                                    <?php if ($server_fatal > 0): ?>
+                                                    <span class="px-2 py-1 bg-red-500 bg-opacity-30 rounded-md font-bold border border-red-400 border-opacity-30">
+                                                        <i class="fas fa-exclamation-circle mr-1"></i><?php echo $server_fatal; ?> Fatal
+                                                    </span>
+                                                    <?php endif; ?>
+                                                    <span class="px-2 py-1 bg-white bg-opacity-20 rounded-md font-bold">
+                                                        Total: <?php echo $server_total; ?>
+                                                    </span>
+                                                </div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="flex items-center gap-3 text-xs opacity-90 mt-2 flex-wrap">
                                                 <span>
                                                     <i class="fas fa-network-wired mr-1"></i>
                                                     <?php 
@@ -205,33 +245,19 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <?php if (!$has_error): 
-                                            $server_procs = is_array($procs) ? $procs : [];
-                                            $server_total = count($server_procs);
-                                            $server_running = 0;
-                                            foreach ($server_procs as $p) {
-                                                if (is_array($p) && isset($p['statename']) && $p['statename'] === 'RUNNING') {
-                                                    $server_running++;
-                                                }
-                                            }
-                                        ?>
-                                        <span class="px-3 py-1 bg-white bg-opacity-20 rounded-full text-xs font-bold">
-                                            <?php echo $server_running; ?>/<?php echo $server_total; ?> Running
-                                        </span>
-                                        <div class="flex gap-1">
-                                            <a href="/control/startall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Start All">
-                                                <i class="fas fa-play text-sm"></i>
-                                            </a>
-                                            <a href="/control/restartall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Restart All">
-                                                <i class="fas fa-redo text-sm"></i>
-                                            </a>
-                                            <a href="/control/stopall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Stop All">
-                                                <i class="fas fa-stop text-sm"></i>
-                                            </a>
-                                        </div>
-                                        <?php endif; ?>
+                                    <?php if (!$has_error): ?>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <a href="/control/startall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Start All">
+                                            <i class="fas fa-play text-sm"></i>
+                                        </a>
+                                        <a href="/control/restartall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Restart All">
+                                            <i class="fas fa-redo text-sm"></i>
+                                        </a>
+                                        <a href="/control/stopall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Stop All">
+                                            <i class="fas fa-stop text-sm"></i>
+                                        </a>
                                     </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             
@@ -288,7 +314,6 @@
                                             <td class="p-3 text-right">
                                                 <div class="inline-block text-left">
                                                     <span class="<?php echo $status_class; ?> px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
-                                                        <div class="w-1.5 h-1.5 rounded-full bg-white bg-opacity-60 <?php echo $status === 'FATAL' ? 'animate-pulse' : ''; ?>"></div>
                                                         <?php echo $status; ?>
                                                     </span>
                                                     <?php if ($uptime): ?>
@@ -346,6 +371,40 @@
     </div>
 
     <script>
+    // Mobile menu toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.querySelector('.sidebar-fixed');
+        const menuIcon = document.getElementById('menu-icon');
+        
+        if (toggleBtn && sidebar) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('mobile-menu-open');
+                
+                // Toggle icon
+                if (sidebar.classList.contains('mobile-menu-open')) {
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                } else {
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                }
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 1024) {
+                    if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target) && sidebar.classList.contains('mobile-menu-open')) {
+                        sidebar.classList.remove('mobile-menu-open');
+                        menuIcon.classList.remove('fa-times');
+                        menuIcon.classList.add('fa-bars');
+                    }
+                }
+            });
+        }
+    });
+    
     // Auto-refresh countdown
     var refreshInterval = <?php echo $this->config->item('refresh'); ?>;
     var currentCountdown = refreshInterval;

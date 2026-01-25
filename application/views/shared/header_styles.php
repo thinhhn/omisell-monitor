@@ -60,10 +60,15 @@
     
     /* Mobile styles */
     @media (max-width: 1024px) {
+        body {
+            overflow: auto;
+        }
+        
         .sidebar-fixed {
             transform: translateX(-100%);
             width: 280px;
             box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            position: fixed;
         }
         
         .sidebar-fixed.mobile-menu-open {
@@ -76,8 +81,13 @@
             min-height: 100vh;
         }
         
-        body {
-            overflow: auto;
+        /* Hamburger button visible on mobile */
+        #mobile-menu-toggle {
+            display: block !important;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 2000;
         }
         
         /* Mobile menu overlay */
@@ -90,6 +100,55 @@
             bottom: 0;
             background: rgba(0, 0, 0, 0.5);
             z-index: -1;
+        }
+    }
+    
+    /* Hide hamburger on desktop */
+    #mobile-menu-toggle {
+        display: none;
+    }
+    
+    /* Process table responsive */
+    @media (max-width: 768px) {
+        /* Summary cards - 1 column on mobile */
+        .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+            grid-template-columns: 1fr !important;
+        }
+        
+        /* Table responsive */
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        table {
+            min-width: 100%;
+            white-space: nowrap;
+        }
+        
+        /* Optimize column widths */
+        table th, table td {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        /* Process name column */
+        table td:first-child, table th:first-child {
+            min-width: 180px;
+            max-width: 200px;
+            white-space: normal;
+            word-break: break-word;
+        }
+        
+        /* Status column - auto width */
+        table td:nth-child(2), table th:nth-child(2) {
+            width: auto;
+            min-width: 80px;
+        }
+        
+        /* Actions column - compact */
+        table td:last-child, table th:last-child {
+            width: 70px;
+            text-align: center;
         }
     }
     

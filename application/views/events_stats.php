@@ -227,8 +227,40 @@
         return div.innerHTML;
     }
     
-    // Auto-load stats on page load
+    // Mobile menu toggle
     document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.querySelector('.sidebar-fixed');
+        const menuIcon = document.getElementById('menu-icon');
+        
+        if (toggleBtn && sidebar) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('mobile-menu-open');
+                
+                // Toggle icon
+                if (sidebar.classList.contains('mobile-menu-open')) {
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                } else {
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                }
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 1024) {
+                    if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target) && sidebar.classList.contains('mobile-menu-open')) {
+                        sidebar.classList.remove('mobile-menu-open');
+                        menuIcon.classList.remove('fa-times');
+                        menuIcon.classList.add('fa-bars');
+                    }
+                }
+            });
+        }
+        
+        // Load stats
         loadStats();
     });
     </script>
