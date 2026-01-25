@@ -1,0 +1,61 @@
+================================================================================
+⚡ QUICK START GUIDE
+================================================================================
+
+🎯 FOR LOCAL TESTING:
+--------------------
+1. Server is already running at: http://localhost:8080
+2. Open browser and go to: http://localhost:8080
+3. Login: admin / admin123
+4. Explore the new UI features!
+
+🚀 FOR PRODUCTION DEPLOYMENT:
+-----------------------------
+# 1. Upload to server
+scp -r ./* user@your-server:/tmp/supervisord-monitor/
+
+# 2. SSH to server
+ssh user@your-server
+
+# 3. Run deployment script
+cd /tmp/supervisord-monitor
+sudo bash deploy.sh
+
+# 4. Follow prompts and configure
+# 5. Test deployment
+bash test_deployment.sh http://your-server-ip
+
+# 6. Configure supervisor servers
+sudo nano /var/www/supervisord-monitor/application/config/supervisor.php
+
+# 7. Access your dashboard!
+http://your-server-ip
+
+================================================================================
+📚 DOCUMENTATION:
+================================================================================
+• README_DEPLOYMENT.md    - Quick start & common commands
+• DEPLOYMENT_GUIDE.md     - Comprehensive deployment guide  
+• SUMMARY.txt             - Complete feature list & checklist
+
+================================================================================
+🆘 TROUBLESHOOTING:
+================================================================================
+• 502 Error: sudo systemctl restart php-fpm
+• 404 Error: Check nginx config root path
+• Permissions: sudo chown -R nginx:nginx /var/www/supervisord-monitor
+• Full guide: See DEPLOYMENT_GUIDE.md
+
+================================================================================
+✨ NEW FEATURES YOU'LL SEE:
+================================================================================
+✓ 3 servers per row (responsive)
+✓ CPU/RAM monitoring with colors
+✓ 18+ tooltips (hover to see)
+✓ Load time in navbar
+✓ Auto-refresh countdown
+✓ 2-line card headers
+✓ Server groups organized
+
+Good luck! 🎉
+================================================================================

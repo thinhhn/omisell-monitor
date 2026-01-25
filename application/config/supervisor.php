@@ -10,9 +10,7 @@
 |
 */
 $config['login_accounts'] = array(
-	'admin' => 'admin123',
-	'supervisor' => 'supervisor123',
-	'monitor' => 'monitor123'
+	'admin' => 'admin@123!'
 );
 
 /*
