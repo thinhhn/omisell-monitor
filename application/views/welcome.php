@@ -7,6 +7,44 @@
 	<link type="text/css" rel="stylesheet" href="<?php echo base_url('/css/bootstrap.min.css');?>"/>
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
 	<link type="text/css" rel="stylesheet" href="<?php echo base_url('/css/custom.css');?>"/>
+	
+	<!-- CSS Fixes for UI -->
+	<style>
+	.container { max-width: 100%; padding: 0 15px; }
+	.card { border: 1px solid #dee2e6; border-radius: 0.25rem; margin-bottom: 1rem; background: white; }
+	.card-header { background-color: #007bff; color: white; padding: 0.75rem 1rem; border-bottom: 1px solid #dee2e6; }
+	.card-body { padding: 1rem; }
+	.table { width: 100%; margin-bottom: 0; }
+	.table-sm th, .table-sm td { padding: 0.3rem; }
+	.badge { display: inline-block; padding: 0.25em 0.4em; font-size: 75%; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; vertical-align: baseline; border-radius: 0.25rem; }
+	.bg-success { background-color: #28a745 !important; color: white; }
+	.bg-danger { background-color: #dc3545 !important; color: white; }
+	.bg-warning { background-color: #ffc107 !important; color: black; }
+	.bg-info { background-color: #17a2b8 !important; color: white; }
+	.bg-secondary { background-color: #6c757d !important; color: white; }
+	.bg-dark { background-color: #343a40 !important; color: white; }
+	.btn { display: inline-block; padding: 0.375rem 0.75rem; margin-bottom: 0; font-size: 1rem; font-weight: 400; line-height: 1.5; text-align: center; text-decoration: none; vertical-align: middle; border: 1px solid transparent; border-radius: 0.25rem; cursor: pointer; }
+	.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+	.btn-success { color: #fff; background-color: #28a745; border-color: #28a745; }
+	.btn-warning { color: #212529; background-color: #ffc107; border-color: #ffc107; }
+	.btn-danger { color: #fff; background-color: #dc3545; border-color: #dc3545; }
+	.btn-outline-success { color: #28a745; border-color: #28a745; background-color: transparent; }
+	.btn-outline-warning { color: #ffc107; border-color: #ffc107; background-color: transparent; }
+	.btn-outline-danger { color: #dc3545; border-color: #dc3545; background-color: transparent; }
+	.alert { padding: 0.75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: 0.25rem; }
+	.alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+	.text-muted { color: #6c757d !important; }
+	.text-center { text-align: center; }
+	.py-3 { padding-top: 1rem; padding-bottom: 1rem; }
+	.col-xl-4 { width: 33.333333%; float: left; padding: 0 10px; }
+	.col-xl-6 { width: 50%; float: left; padding: 0 10px; }
+	.row::after { content: ""; clear: both; display: table; }
+	.btn-group .btn { margin-right: 2px; }
+	.server-controls { margin-top: 10px; }
+	.mb-3 { margin-bottom: 1rem; }
+	.table-responsive { overflow-x: auto; }
+	.table-hover tbody tr:hover { background-color: rgba(0,0,0,.075); }
+	</style>
 	<script type="text/javascript" src="<?php echo base_url('/js/jquery-1.10.1.min.js');?>"></script>
 	<script type="text/javascript" src="<?php echo base_url('/js/bootstrap.min.js');?>"></script>
 	<noscript>
@@ -122,6 +160,15 @@
 		?>
 		<div class="row">
 				<?php
+				// Debug data
+				if (isset($_GET['debug'])) {
+					echo "<pre>DEBUG DATA:\n";
+					echo "List data: " . print_r($list, true) . "\n";
+					echo "Config data: " . print_r($cfg, true) . "\n";
+					echo "Version data: " . print_r($version, true) . "\n";
+					echo "</pre>";
+				}
+				
 				$alert = false;
 				$break_count = 0;
 				$total_servers = count($cfg);
