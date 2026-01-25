@@ -85,64 +85,93 @@ class Control extends MY_Controller
      */
     public function restart($server, $worker)
     {
+        $log = []; // Debug log
+        
         // Get initial state for reference
         $initial_info = $this->_request($server, 'getProcessInfo', [$worker], false);
         $initial_state = isset($initial_info['statename']) ? $initial_info['statename'] : 'UNKNOWN';
+        $log[] = "Initial state: $initial_state";
         
         // Step 1: Stop the process
+        $log[] = "Attempting to stop process...";
         $stop_result = $this->_request($server, 'stopProcess', [$worker, true], false);
         
         if (isset($stop_result['error'])) {
-            $this->session->set_flashdata('error', "Failed to stop $worker for restart: " . $stop_result['error']);
+            $log[] = "Stop failed: " . $stop_result['error'];
+            $this->session->set_flashdata('error', "Failed to stop $worker for restart: " . $stop_result['error'] . " | Log: " . implode(' | ', $log));
             redirect(base_url());
             return;
         }
+        $log[] = "Stop command sent successfully";
         
         // Step 2: Wait and verify stop
         $stop_verified = false;
-        for ($i = 0; $i < 10; $i++) {
+        $log[] = "Waiting for process to stop...";
+        for ($i = 0; $i < 15; $i++) { // Increased from 10 to 15
             sleep(1);
             $check_info = $this->_request($server, 'getProcessInfo', [$worker], false);
             $current_state = isset($check_info['statename']) ? $check_info['statename'] : 'UNKNOWN';
+            $log[] = "Check $i: state=$current_state";
             
-            if ($current_state === 'STOPPED') {
+            if ($current_state === 'STOPPED' || $current_state === 'EXITED') {
                 $stop_verified = true;
+                $log[] = "Process stopped successfully";
                 break;
             }
         }
         
         if (!$stop_verified) {
+            $log[] = "WARNING: Process did not stop in time";
             $this->session->set_flashdata('warning', "Process $worker may not have stopped completely before restart attempt");
         }
         
+        // Wait a bit longer to ensure clean shutdown
+        sleep(2);
+        $log[] = "Waited 2s for clean shutdown";
+        
         // Step 3: Start the process
+        $log[] = "Attempting to start process...";
         $start_result = $this->_request($server, 'startProcess', [$worker, true], false);
         
         if (isset($start_result['error'])) {
-            $this->session->set_flashdata('error', "Failed to start $worker after stop. Process is now STOPPED. Error: " . $start_result['error']);
+            $log[] = "Start failed: " . $start_result['error'];
+            $this->session->set_flashdata('error', "Failed to start $worker after stop. Process is now STOPPED. Error: " . $start_result['error'] . " | Log: " . implode(' | ', $log));
             redirect(base_url());
             return;
         }
+        $log[] = "Start command sent successfully";
         
         // Step 4: Wait and verify start
         $start_verified = false;
         $final_state = 'UNKNOWN';
-        for ($i = 0; $i < 10; $i++) {
+        $log[] = "Waiting for process to start...";
+        for ($i = 0; $i < 20; $i++) { // Increased from 10 to 20
             sleep(1);
             $final_info = $this->_request($server, 'getProcessInfo', [$worker], false);
             $final_state = isset($final_info['statename']) ? $final_info['statename'] : 'UNKNOWN';
+            $log[] = "Start check $i: state=$final_state";
             
-            if ($final_state === 'RUNNING' || $final_state === 'STARTING') {
+            if ($final_state === 'RUNNING') {
                 $start_verified = true;
+                $log[] = "Process started and running";
+                break;
+            } elseif ($final_state === 'STARTING') {
+                // Keep waiting, it's starting
+                $log[] = "Process is starting...";
+            } elseif ($final_state === 'BACKOFF' || $final_state === 'FATAL') {
+                // Process failed to start properly
+                $log[] = "Process entered error state: $final_state";
                 break;
             }
         }
         
-        // Final result
+        // Final result with detailed logging
         if ($start_verified) {
             $this->session->set_flashdata('success', "Process $worker successfully restarted on $server (was: $initial_state → now: $final_state)");
         } else {
-            $this->session->set_flashdata('error', "Restart failed: Process $worker stopped but did not start properly (final state: $final_state)");
+            $error_msg = "Restart failed: Process $worker stopped but did not start properly (final state: $final_state)";
+            $error_msg .= " | Debug log: " . implode(' | ', $log);
+            $this->session->set_flashdata('error', $error_msg);
         }
         
         redirect(base_url());
