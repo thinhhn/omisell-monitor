@@ -50,14 +50,6 @@ $config['supervisor_servers'] = array(
                 'password' => 'thinh49121',
 		'is_break' => true
 	),
-	// Web_003 server is commented out
-	// 'web_003' => array(
-        //        'url' => 'http://10.148.0.50',
-        //        'port' => 9001,
-        //        'username' => 'thinhhn',
-        //        'password' => 'thinh49121',
-        //        'is_break' => true
-        // ),
 	
 	// Celery GCP Servers
 	'celery_hook' => array(
@@ -91,66 +83,25 @@ $config['supervisor_servers'] = array(
                 'username' => 'thinhhn',
                 'password' => 'thinh49121',
         ),
-	// Commented celery servers 005-007
-	// 'celery_005' => array(
-        //       'url' => 'http://10.148.0.17',
-        //       'port' => 9001,
-        //       'username' => 'thinhhn',
-        //       'password' => 'thinh49121'
-        // ),
-        // 'celery_006' => array(
-        //       'url' => 'http://10.148.0.18',
-        //       'port' => 9001,
-        //       'username' => 'thinhhn',
-        //       'password' => 'thinh49121'
-        // ),
-        // 'celery_007' => array(
-        //       'url' => 'http://10.148.0.19',
-        //       'port' => 9001,
-        //       'username' => 'thinhhn',
-        //       'password' => 'thinh49121',
-	//       'is_break' => true
-        // ),
-	
-	// Azure servers (commented out)
-	// 'azure_celery_001' => array(
-        //        'url' => 'http://10.20.0.9',
-        //        'port' => 9001,
-        //        'username' => 'thinhhn',
-        //        'password' => 'thinh49121'
-        // ),
-        // 'azure_celery_002' => array(
-        //      'url' => 'http://10.20.0.7',
-        //        'port' => 9001,
-        //      'username' => 'thinhhn',
-        //      'password' => 'thinh49121'
-        // ),
-        // 'azure_celery_003' => array(
-        //        'url' => 'http://10.148.0.11',
-        //        'port' => 9001,
-        //        'username' => 'thinhhn',
-        //        'password' => 'thinh49121',
-	//	'is_break' => true
-        // ),
-	// 'azure_celery_004' => array(
-        //        'url' => 'http://10.20.0.10',
-        //        'port' => 9001,
-        //        'username' => 'thinhhn',
-        //        'password' => 'thinh49121'
-        // ),
-        // 'azure_celery_005' => array(
-        //      'url' => 'http://10.20.0.12',
-        //      'port' => 9001,
-        //      'username' => 'thinhhn',
-        //      'password' => 'thinh49121'
-        // ),
-        // 'azure_celery_006' => array(
-        //        'url' => 'http://10.20.0.13',
-        //        'port' => 9001,
-        //        'username' => 'thinhhn',
-        //        'password' => 'thinh49121',
-        //        'is_break' => true
-        // ),
+	'celery_005' => array(
+              'url' => 'http://10.148.0.17',
+              'port' => 9001,
+              'username' => 'thinhhn',
+              'password' => 'thinh49121'
+        ),
+        'celery_006' => array(
+              'url' => 'http://10.148.0.18',
+              'port' => 9001,
+              'username' => 'thinhhn',
+              'password' => 'thinh49121'
+        ),
+        'celery_007' => array(
+              'url' => 'http://10.148.0.19',
+              'port' => 9001,
+              'username' => 'thinhhn',
+              'password' => 'thinh49121',
+	      'is_break' => true
+        ),
 	
 	// Omni servers
 	'web_omni_001' => array(

@@ -71,18 +71,11 @@ class MY_Controller extends CI_Controller
     }
 
     /**
-     * Optimized request with caching and error handling
+     * Direct request without caching - always fresh data
      */
-    public function _request($server, $method, $request = [], $use_cache = true)
+    public function _request($server, $method, $request = [], $use_cache = false)
     {
-        // Check cache first if enabled
-        if ($use_cache) {
-            $cache_key = $this->getCacheKey($server, $method, $request);
-            $cached_response = $this->getCache($cache_key);
-            if ($cached_response !== false) {
-                return $cached_response;
-            }
-        }
+        // Always get fresh data - no cache
 
         $servers = $this->config->item('supervisor_servers');
         if (!isset($servers[$server])) {
@@ -92,11 +85,7 @@ class MY_Controller extends CI_Controller
         $config = $servers[$server];
         $response = $this->executeRequest($server, $method, $request, $config);
         
-        // Cache successful responses
-        if ($use_cache && !isset($response['error'])) {
-            $this->setCache($cache_key, $response, 30); // Cache for 30 seconds
-        }
-        
+        // No caching - always return fresh data
         return $response;
     }
 
@@ -240,9 +229,9 @@ class MY_Controller extends CI_Controller
     }
 
     /**
-     * Parallel requests to multiple servers
+     * Parallel requests to multiple servers with NO CACHE
      */
-    public function _parallel_requests($servers_methods)
+    public function _parallel_requests_no_cache($servers_methods)
     {
         $responses = [];
         $handles = [];
@@ -255,16 +244,7 @@ class MY_Controller extends CI_Controller
             $method = $data['method'];
             $request = isset($data['request']) ? $data['request'] : [];
             
-            // Check cache first
-            $cache_key = $this->getCacheKey($server, $method, $request);
-            $cached_response = $this->getCache($cache_key);
-            
-            if ($cached_response !== false) {
-                $responses[$key] = $cached_response;
-                continue;
-            }
-            
-            // Create cURL handle for non-cached requests
+            // No cache check - always fetch fresh data
             $ch = $this->createCurlHandle($server, $method, $request);
             if ($ch) {
                 $handles[$key] = $ch;
@@ -284,20 +264,21 @@ class MY_Controller extends CI_Controller
             foreach ($handles as $key => $ch) {
                 $result = curl_multi_getcontent($ch);
                 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curl_error = curl_error($ch);
                 
-                if ($http_code == 200 && $result) {
+                if ($curl_error) {
+                    $responses[$key] = [
+                        'error' => 'cURL Error: ' . $curl_error, 
+                        'server' => $servers_methods[$key]['server']
+                    ];
+                } elseif ($http_code == 200 && $result) {
                     $response = $this->parseXmlrpcResponse($result);
                     $responses[$key] = $response;
                     
-                    // Cache successful responses
-                    $server = $servers_methods[$key]['server'];
-                    $method = $servers_methods[$key]['method'];
-                    $request = isset($servers_methods[$key]['request']) ? $servers_methods[$key]['request'] : [];
-                    $cache_key = $this->getCacheKey($server, $method, $request);
-                    $this->setCache($cache_key, $response, 30);
+                    // No caching - fresh data only
                 } else {
                     $responses[$key] = [
-                        'error' => 'Request failed', 
+                        'error' => "HTTP Error $http_code", 
                         'server' => $servers_methods[$key]['server']
                     ];
                 }
@@ -309,6 +290,15 @@ class MY_Controller extends CI_Controller
         
         curl_multi_close($mh);
         return $responses;
+    }
+    
+    /**
+     * Legacy parallel requests (with cache) - kept for compatibility
+     */
+    public function _parallel_requests($servers_methods)
+    {
+        // For now, redirect to no-cache version since cache is disabled
+        return $this->_parallel_requests_no_cache($servers_methods);
     }
 
     /**

@@ -81,11 +81,15 @@ class Control extends MY_Controller
     }
 
     /**
-     * Restart a specific process
+     * Restart a specific process with detailed monitoring
      */
     public function restart($server, $worker)
     {
-        // First stop the process
+        // Get initial state for reference
+        $initial_info = $this->_request($server, 'getProcessInfo', [$worker], false);
+        $initial_state = isset($initial_info['statename']) ? $initial_info['statename'] : 'UNKNOWN';
+        
+        // Step 1: Stop the process
         $stop_result = $this->_request($server, 'stopProcess', [$worker, true], false);
         
         if (isset($stop_result['error'])) {
@@ -94,16 +98,51 @@ class Control extends MY_Controller
             return;
         }
         
-        // Wait for clean shutdown
-        sleep(2);
+        // Step 2: Wait and verify stop
+        $stop_verified = false;
+        for ($i = 0; $i < 10; $i++) {
+            sleep(1);
+            $check_info = $this->_request($server, 'getProcessInfo', [$worker], false);
+            $current_state = isset($check_info['statename']) ? $check_info['statename'] : 'UNKNOWN';
+            
+            if ($current_state === 'STOPPED') {
+                $stop_verified = true;
+                break;
+            }
+        }
         
-        // Then start it
+        if (!$stop_verified) {
+            $this->session->set_flashdata('warning', "Process $worker may not have stopped completely before restart attempt");
+        }
+        
+        // Step 3: Start the process
         $start_result = $this->_request($server, 'startProcess', [$worker, true], false);
         
         if (isset($start_result['error'])) {
-            $this->session->set_flashdata('error', "Failed to start $worker after stop: " . $start_result['error']);
+            $this->session->set_flashdata('error', "Failed to start $worker after stop. Process is now STOPPED. Error: " . $start_result['error']);
+            redirect(base_url());
+            return;
+        }
+        
+        // Step 4: Wait and verify start
+        $start_verified = false;
+        $final_state = 'UNKNOWN';
+        for ($i = 0; $i < 10; $i++) {
+            sleep(1);
+            $final_info = $this->_request($server, 'getProcessInfo', [$worker], false);
+            $final_state = isset($final_info['statename']) ? $final_info['statename'] : 'UNKNOWN';
+            
+            if ($final_state === 'RUNNING' || $final_state === 'STARTING') {
+                $start_verified = true;
+                break;
+            }
+        }
+        
+        // Final result
+        if ($start_verified) {
+            $this->session->set_flashdata('success', "Process $worker successfully restarted on $server (was: $initial_state → now: $final_state)");
         } else {
-            $this->session->set_flashdata('success', "Process $worker restarted successfully on $server");
+            $this->session->set_flashdata('error', "Restart failed: Process $worker stopped but did not start properly (final state: $final_state)");
         }
         
         redirect(base_url());

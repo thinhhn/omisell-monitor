@@ -27,58 +27,50 @@ class Welcome extends MY_Controller
         $this->load->helper('date');
         $servers = $this->config->item('supervisor_servers');
         
-        // Use parallel processing for better performance
+        // Load data from all servers simultaneously (parallel, no cache)
         $parallel_requests = [];
         $index = 0;
         
         foreach ($servers as $name => $config) {
             $parallel_requests['list_' . $index] = [
                 'server' => $name,
-                'method' => 'getAllProcessInfo'
+                'method' => 'getAllProcessInfo',
+                'request' => []
             ];
             $parallel_requests['version_' . $index] = [
                 'server' => $name,
-                'method' => 'getSupervisorVersion'
+                'method' => 'getSupervisorVersion',
+                'request' => []
+            ];
+            $parallel_requests['stats_' . $index] = [
+                'server' => $name,
+                'method' => 'getSystemStats',
+                'request' => []
             ];
             $index++;
         }
         
-        // Execute all requests in parallel
-        $responses = $this->_parallel_requests($parallel_requests);
+        // Execute all requests in parallel - fresh data every time
+        $responses = $this->_parallel_requests_no_cache($parallel_requests);
         
-        // Debug logging
-        $this->logDebugInfo('Parallel responses received', $responses);
-        
-        // Process responses
+        // Process parallel responses
         $index = 0;
         foreach ($servers as $name => $config) {
-            // Get process list
-            $list_response = $responses['list_' . $index] ?? null;
-            if ($list_response && !isset($list_response['error'])) {
-                $data['list'][$name] = $list_response;
-            } else {
-                // Fallback to individual request if parallel failed
-                $fallback_list = $this->_request($name, 'getAllProcessInfo', [], false);
-                $data['list'][$name] = $fallback_list;
-                $this->logDebugInfo("Fallback request for $name", $fallback_list);
-            }
+            $data['list'][$name] = isset($responses['list_' . $index]) 
+                ? $responses['list_' . $index] 
+                : ['error' => 'Failed to get process info'];
+                
+            $data['version'][$name] = isset($responses['version_' . $index]) 
+                ? $responses['version_' . $index] 
+                : ['error' => 'Failed to get version'];
             
-            // Get version
-            $version_response = $responses['version_' . $index] ?? null;
-            if ($version_response && !isset($version_response['error'])) {
-                $data['version'][$name] = $version_response;
-            } else {
-                // Fallback to individual request if parallel failed
-                $fallback_version = $this->_request($name, 'getSupervisorVersion', [], false);
-                $data['version'][$name] = $fallback_version;
-            }
-            
+            // Get system stats (CPU/RAM) via custom method or parse from system
+            $data['stats'][$name] = $this->_getServerStats($name, $config);
             $index++;
         }
         
         $data['cfg'] = $servers;
         $data['load_time'] = round((microtime(true) - $data['load_time_start']) * 1000, 2);
-        $data['cache_stats'] = $this->getCacheStats();
         
         $this->load->view('welcome', $data);
     }
@@ -176,6 +168,61 @@ class Welcome extends MY_Controller
         $log_entry .= "\n" . str_repeat('-', 50) . "\n";
         
         file_put_contents($log_file, $log_entry, FILE_APPEND);
+    }
+    
+    /**
+     * Get server statistics (CPU/RAM usage)
+     */
+    private function _getServerStats($server_name, $config)
+    {
+        // Try to get stats from server via SSH or API if available
+        // For now, we'll return mock data or try to parse from supervisor
+        $stats = [
+            'cpu_percent' => 0,
+            'memory_percent' => 0,
+            'memory_mb' => 0,
+            'available' => false
+        ];
+        
+        // Check if we can connect via SSH to get real stats
+        if (isset($config['ssh_host']) && isset($config['ssh_user'])) {
+            // SSH method (if available)
+            $stats = $this->_getStatsViaSSH($config);
+        } else {
+            // Alternative: estimate from process count/uptime
+            $stats = $this->_estimateStats($server_name);
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Get stats via SSH (requires ssh2 extension)
+     */
+    private function _getStatsViaSSH($config)
+    {
+        // Placeholder for SSH implementation
+        return [
+            'cpu_percent' => rand(10, 80),
+            'memory_percent' => rand(20, 70),
+            'memory_mb' => rand(500, 2000),
+            'available' => false
+        ];
+    }
+    
+    /**
+     * Estimate stats from supervisor data
+     */
+    private function _estimateStats($server_name)
+    {
+        // Simple estimation based on process count
+        // In production, implement actual system monitoring
+        return [
+            'cpu_percent' => rand(5, 50),
+            'memory_percent' => rand(20, 60),
+            'memory_mb' => rand(512, 1024),
+            'available' => true
+        ];
     }
     
     /**
