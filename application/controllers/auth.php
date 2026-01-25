@@ -79,7 +79,7 @@ class Auth extends CI_Controller
         $this->session->set_flashdata('message', 'Đăng xuất thành công');
         
         // Redirect to login page
-        redirect(base_url() . 'auth');
+        redirect('auth');
     }
 
     /**

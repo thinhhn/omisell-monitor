@@ -15,7 +15,15 @@
 |
 */
 
-$config['base_url']	= 'http://localhost:8000/';
+// Load environment-specific configuration
+if (file_exists(APPPATH . 'config/environments.php')) {
+    include(APPPATH . 'config/environments.php');
+}
+
+// If not set by environment config, leave empty for auto-detection
+if (!isset($config['base_url'])) {
+    $config['base_url'] = '';
+}
 
 /*
 |--------------------------------------------------------------------------
