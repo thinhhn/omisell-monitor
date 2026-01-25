@@ -41,6 +41,22 @@
 $route['default_controller'] = "welcome";
 $route['404_override'] = '';
 
+// Authentication routes
+$route['login'] = "auth/index";
+$route['auth/login'] = "auth/login";
+$route['logout'] = "auth/logout";
+$route['auth/logout'] = "auth/logout";
+$route['auth/checkSession'] = "auth/checkSession";
+
+// Welcome controller routes  
+$route['welcome/ajaxUpdate'] = "welcome/ajaxUpdate";
+$route['welcome/clearCache'] = "welcome/clearCache";
+
+// Cron controller routes
+$route['cron/updateSupervisorData'] = "cron/updateSupervisorData";
+$route['cron/healthCheck'] = "cron/healthCheck";
+$route['cron/performanceReport'] = "cron/performanceReport";
+
 
 /* End of file routes.php */
 /* Location: ./application/config/routes.php */
