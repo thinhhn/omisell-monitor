@@ -18,9 +18,14 @@
 		padding: 0.75rem 1rem; 
 		border-bottom: 1px solid #dee2e6;
 		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.card-header-row {
+		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		flex-wrap: nowrap;
+		width: 100%;
 	}
 	.card-header .header-left {
 		display: flex;
@@ -35,6 +40,15 @@
 		gap: 10px;
 		flex-shrink: 0;
 		white-space: nowrap;
+	}
+	.card-header .header-info {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.8rem;
+		opacity: 0.85;
+		padding-top: 5px;
+		border-top: 1px solid rgba(255,255,255,0.2);
 	}
 	.card-body { padding: 1rem; }
 	.table { width: 100%; margin-bottom: 0; }
@@ -136,7 +150,8 @@
 	  	<a class="navbar-brand" href="<?php echo site_url('');?>">Omisell Supervisord Center</a>
 		<ul class="navbar-nav mr-auto mt-2 mt-lg-0">
 			<li class="nav-item">
-				<a class="nav-link" href="?mute=<?php echo ($muted?-1:1);?>"><i class="icon-music icon-white"></i>&nbsp;<?php
+				<a class="nav-link" href="?mute=<?php echo ($muted?-1:1);?>" title="<?php echo $muted ? 'Click to unmute alarm sounds' : 'Click to mute alarm sounds'; ?>" data-bs-toggle="tooltip">
+					<i class="bi bi-<?php echo $muted ? 'volume-mute' : 'volume-up'; ?>"></i>&nbsp;<?php
 					if($muted){
 						echo "Unmute";
 					}else{
@@ -145,7 +160,19 @@
 				;?></a>
 			</li>
 			<li class="nav-item">
-				<a class="nav-link" href="<?php echo site_url();?>">Refresh <b id="refresh">(<?php echo $this->config->item('refresh');?>)</b> &nbsp;</a>
+				<span class="nav-link" title="Page will auto-refresh every <?php echo $this->config->item('refresh'); ?> seconds" data-bs-toggle="tooltip">
+					<i class="bi bi-arrow-clockwise"></i> Auto-refresh: <span id="countdown" class="badge badge-light"><?php echo $this->config->item('refresh'); ?></span>s
+				</span>
+			</li>
+			<li class="nav-item">
+				<span class="nav-link" title="Time taken to load this page" data-bs-toggle="tooltip">
+					<i class="bi bi-speedometer"></i> Load: <span class="badge badge-success"><?php echo isset($load_time) ? $load_time : '0'; ?></span>ms
+				</span>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="javascript:location.reload();" title="Manually refresh the page now" data-bs-toggle="tooltip">
+					<i class="bi bi-arrow-repeat"></i> Refresh
+				</a>
 			</li>
 		</ul>
 		
@@ -198,24 +225,6 @@
 			</div>
 		<?php endif; ?>
 
-		<!-- Simple Stats Bar -->
-		<div class="row mb-3">
-			<div class="col-12">
-				<div class="alert alert-info">
-					<div class="d-flex justify-content-between align-items-center">
-						<div>
-							<strong>Supervisor Monitor</strong> - 
-							Load Time: <?php echo isset($load_time) ? $load_time : '0'; ?>ms |
-							Auto-refresh: <span id="countdown"><?php echo $this->config->item('refresh'); ?></span>s |
-							<a href="javascript:location.reload();">Manual Refresh</a>
-						</div>
-						<div>
-							<small class="text-muted">Fresh data loaded automatically every <?php echo $this->config->item('refresh'); ?> seconds</small>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
 	
 		<?php
 		if($muted){
@@ -238,7 +247,7 @@
 		
 		// Define server groups for better organization
 		$server_groups = [
-			'Main Platform' => [
+			'Omisell Platform' => [
 				'web' => ['web_001', 'web_002'],
 				'celery' => ['celery_hook', 'celery_001', 'celery_002', 'celery_003', 'celery_004', 'celery_005', 'celery_006', 'celery_007']
 			],
@@ -280,15 +289,14 @@
 					<div class="col-lg-4 col-md-6 mb-3">
 						<div class="card h-100">
 							<div class="card-header text-white" style="background: <?php echo $type_name === 'web' ? 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)' : 'linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%)'; ?>;">
-								<div class="header-left">
-									<a href="<?php echo $ui_url; ?>" class="text-white text-decoration-none" target="_blank" title="Open Supervisor UI">
-										<i class="bi bi-server"></i> <strong><?php echo $name; ?></strong>
-									</a>
-									<?php if($this->config->item('show_host')): ?>
-										<small style="opacity: 0.8;">(<?php echo $parsed_url['host']; ?>)</small>
-									<?php endif; ?>
-								</div>
-								<div class="header-right">
+								<!-- Row 1: Server name and actions -->
+								<div class="card-header-row">
+									<div class="header-left">
+										<a href="<?php echo $ui_url; ?>" class="text-white text-decoration-none" target="_blank" title="Open Supervisor UI" data-bs-toggle="tooltip">
+											<i class="bi bi-server"></i> <strong><?php echo $name; ?></strong>
+										</a>
+									</div>
+									<div class="header-right">
 									<?php 
 									// Calculate process stats
 									$total_procs = 0;
@@ -315,27 +323,56 @@
 									$mem_color = $mem_percent > 80 ? '#dc3545' : ($mem_percent > 60 ? '#ffc107' : '#28a745');
 									?>
 									
-									<div class="server-stats">
+										<div class="server-stats">
+											<?php if (!isset($procs['error'])): ?>
+												<span class="stat-badge" title="Running / Total Processes" data-bs-toggle="tooltip">
+													<i class="bi bi-cpu"></i> <?php echo $running_procs; ?>/<?php echo $total_procs; ?>
+												</span>
+											<?php endif; ?>
+											
+											<?php if ($server_stats['available']): ?>
+												<span class="stat-badge" title="CPU Usage: <?php echo round($cpu_percent, 1); ?>%" data-bs-toggle="tooltip" style="border-left: 3px solid <?php echo $cpu_color; ?>;">
+													<i class="bi bi-speedometer2"></i> <?php echo round($cpu_percent, 1); ?>%
+												</span>
+												<span class="stat-badge" title="Memory Usage: <?php echo round($mem_mb); ?> MB (<?php echo round($mem_percent, 1); ?>%)" data-bs-toggle="tooltip" style="border-left: 3px solid <?php echo $mem_color; ?>;">
+													<i class="bi bi-memory"></i> <?php echo round($mem_percent, 1); ?>%
+												</span>
+											<?php endif; ?>
+											
+											<?php if(isset($server_config['username'])): ?>
+												<i class="bi bi-shield-lock text-warning" title="Authentication Enabled" data-bs-toggle="tooltip"></i>
+											<?php endif; ?>
+										</div>
+										
 										<?php if (!isset($procs['error'])): ?>
-											<span class="stat-badge" title="Running / Total Processes">
-												<i class="bi bi-cpu"></i> <?php echo $running_procs; ?>/<?php echo $total_procs; ?>
-											</span>
+										<div class="btn-group btn-group-sm" role="group">
+											<a href="<?php echo base_url('control/startall/' . $name); ?>" 
+											   class="btn btn-outline-light btn-sm" title="Start All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+												<i class="bi bi-play-fill"></i>
+											</a>
+											<a href="<?php echo base_url('control/restartall/' . $name); ?>" 
+											   class="btn btn-outline-light btn-sm" title="Restart All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+												<i class="bi bi-arrow-clockwise"></i>
+											</a>
+											<a href="<?php echo base_url('control/stopall/' . $name); ?>" 
+											   class="btn btn-outline-light btn-sm" title="Stop All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+												<i class="bi bi-stop-fill"></i>
+											</a>
+										</div>
 										<?php endif; ?>
-										
-										<?php if ($server_stats['available']): ?>
-											<span class="stat-badge" title="CPU Usage" style="border-left: 3px solid <?php echo $cpu_color; ?>;">
-												<i class="bi bi-speedometer2"></i> <?php echo round($cpu_percent, 1); ?>%
-											</span>
-											<span class="stat-badge" title="Memory Usage: <?php echo round($mem_mb); ?> MB" style="border-left: 3px solid <?php echo $mem_color; ?>;">
-												<i class="bi bi-memory"></i> <?php echo round($mem_percent, 1); ?>%
-											</span>
+									</div>
+								</div>
+								
+								<!-- Row 2: Version and IP info -->
+								<div class="header-info">
+									<div>
+										<?php if($this->config->item('show_host')): ?>
+											<i class="bi bi-hdd-network"></i> <span title="Server IP/Host" data-bs-toggle="tooltip"><?php echo $parsed_url['host']; ?></span>
 										<?php endif; ?>
-										
-										<?php if(isset($server_config['username'])): ?>
-											<i class="bi bi-shield-lock text-warning" title="Authenticated"></i>
-										<?php endif; ?>
-										
-										<small style="opacity: 0.9;">
+									</div>
+									<div>
+										<span title="Supervisor Version" data-bs-toggle="tooltip">
+											<i class="bi bi-info-circle"></i>
 											<?php 
 											if (isset($version[$name]) && !isset($version[$name]['error'])) {
 												echo $version[$name];
@@ -343,25 +380,8 @@
 												echo 'v?';
 											}
 											?>
-										</small>
+										</span>
 									</div>
-									
-									<?php if (!isset($procs['error'])): ?>
-									<div class="btn-group btn-group-sm" role="group">
-										<a href="<?php echo base_url('control/startall/' . $name); ?>" 
-										   class="btn btn-outline-light btn-sm" title="Start All" style="padding: 2px 8px; font-size: 0.75rem;">
-											<i class="bi bi-play-fill"></i>
-										</a>
-										<a href="<?php echo base_url('control/restartall/' . $name); ?>" 
-										   class="btn btn-outline-light btn-sm" title="Restart All" style="padding: 2px 8px; font-size: 0.75rem;">
-											<i class="bi bi-arrow-clockwise"></i>
-										</a>
-										<a href="<?php echo base_url('control/stopall/' . $name); ?>" 
-										   class="btn btn-outline-light btn-sm" title="Stop All" style="padding: 2px 8px; font-size: 0.75rem;">
-											<i class="bi bi-stop-fill"></i>
-										</a>
-									</div>
-									<?php endif; ?>
 								</div>
 							</div>
 							
@@ -449,16 +469,16 @@
 														<div class="btn-group btn-group-sm" role="group">
 															<?php if ($status == 'RUNNING'): ?>
 																<a href="<?php echo base_url('control/stop/' . $name . '/' . urlencode($item_name)); ?>" 
-																   class="btn btn-outline-danger btn-sm" title="Stop">
+																   class="btn btn-outline-danger btn-sm" title="Stop this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-stop-fill"></i>
 																</a>
 																<a href="<?php echo base_url('control/restart/' . $name . '/' . urlencode($item_name)); ?>" 
-																   class="btn btn-outline-warning btn-sm" title="Restart">
+																   class="btn btn-outline-warning btn-sm" title="Restart this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-arrow-clockwise"></i>
 																</a>
 															<?php elseif (in_array($status, ['STOPPED', 'EXITED', 'FATAL'])): ?>
 																<a href="<?php echo base_url('control/start/' . $name . '/' . urlencode($item_name)); ?>" 
-																   class="btn btn-outline-success btn-sm" title="Start">
+																   class="btn btn-outline-success btn-sm" title="Start this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-play-fill"></i>
 																</a>
 															<?php endif; ?>
@@ -565,6 +585,15 @@
 	
 	// No initialization needed - pure page-based mode
 	console.log('Supervisor Monitor loaded - Simple mode');
+	
+	// Initialize Bootstrap tooltips
+	$(document).ready(function() {
+		// Enable all tooltips
+		$('[data-bs-toggle="tooltip"]').tooltip();
+		$('[title]').tooltip();
+		
+		console.log('Tooltips initialized');
+	});
 	
 	// Performance monitoring
 	window.addEventListener('load', function() {
