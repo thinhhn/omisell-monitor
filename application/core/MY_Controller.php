@@ -487,13 +487,84 @@ class MY_Controller extends CI_Controller
             }
         }
         
-        // Fallback to manual parsing
-        preg_match('/<methodResponse>\s*<params>\s*<param>\s*<value>(.*?)<\/value>/s', $xml, $matches);
-        if (isset($matches[1])) {
-            return $this->parseXmlrpcValue($matches[1]);
+        // Enhanced manual parsing for supervisor XML format
+        return $this->parseXmlrpcResponseManual($xml);
+    }
+    
+    /**
+     * Manual XML-RPC parser specifically for supervisor format
+     */
+    private function parseXmlrpcResponseManual($xml)
+    {
+        // Extract the main value from methodResponse
+        preg_match('/<methodResponse>\s*<params>\s*<param>\s*<value>(.*?)<\/value>\s*<\/param>\s*<\/params>\s*<\/methodResponse>/s', $xml, $matches);
+        
+        if (!isset($matches[1])) {
+            return ['error' => 'No param value found in methodResponse'];
         }
         
-        return ['error' => 'Could not parse XML-RPC response'];
+        $value = $matches[1];
+        
+        // Check if it's an array
+        if (strpos($value, '<array>') !== false) {
+            // Extract array data
+            preg_match('/<array>\s*<data>(.*?)<\/data>\s*<\/array>/s', $value, $array_matches);
+            
+            if (!isset($array_matches[1])) {
+                return ['error' => 'No data found in array'];
+            }
+            
+            $array_data = $array_matches[1];
+            
+            // Find all struct values in the array
+            preg_match_all('/<value>\s*<struct>(.*?)<\/struct>\s*<\/value>/s', $array_data, $struct_matches);
+            
+            $result = [];
+            
+            foreach ($struct_matches[1] as $struct_content) {
+                $struct_data = $this->parseXmlrpcStruct($struct_content);
+                if ($struct_data) {
+                    $result[] = $struct_data;
+                }
+            }
+            
+            return $result;
+        }
+        
+        // If not an array, parse as single value
+        return $this->parseXmlrpcValue($value);
+    }
+    
+    /**
+     * Parse XML-RPC struct (for process info)
+     */
+    private function parseXmlrpcStruct($struct_content)
+    {
+        $result = [];
+        
+        // Find all members in the struct
+        preg_match_all('/<member>\s*<name>(.*?)<\/name>\s*<value>(.*?)<\/value>\s*<\/member>/s', $struct_content, $member_matches, PREG_SET_ORDER);
+        
+        foreach ($member_matches as $member) {
+            $key = trim($member[1]);
+            $value_content = $member[2];
+            
+            // Parse the value based on its type
+            if (preg_match('/<string>(.*?)<\/string>/s', $value_content, $string_match)) {
+                $result[$key] = html_entity_decode($string_match[1], ENT_XML1, 'UTF-8');
+            } elseif (preg_match('/<int>(.*?)<\/int>/s', $value_content, $int_match)) {
+                $result[$key] = (int) $int_match[1];
+            } elseif (preg_match('/<boolean>(.*?)<\/boolean>/s', $value_content, $bool_match)) {
+                $result[$key] = ($bool_match[1] === '1' || $bool_match[1] === 'true');
+            } elseif (preg_match('/<double>(.*?)<\/double>/s', $value_content, $double_match)) {
+                $result[$key] = (float) $double_match[1];
+            } else {
+                // Fallback for other types
+                $result[$key] = strip_tags($value_content);
+            }
+        }
+        
+        return $result;
     }
 
     /**
