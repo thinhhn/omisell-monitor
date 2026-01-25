@@ -463,9 +463,9 @@
 										<table class="table table-sm table-hover mb-0">
 											<thead class="table-light">
 												<tr>
-													<th width="40%">Process</th>
-													<th width="35%">Status</th>
-													<th width="25%" class="text-right">Actions</th>
+													<th>Process</th>
+													<th width="200" class="text-right">Status</th>
+													<th width="120" class="text-right">Actions</th>
 												</tr>
 											</thead>
 											<tbody>
@@ -515,32 +515,32 @@
 															<br><small class="text-muted">PID: <?php echo $pid; ?></small>
 														<?php endif; ?>
 													</td>
-													<td>
-														<div>
+													<td class="text-right">
+														<div style="display: inline-block; text-align: left;">
 															<span class="badge bg-<?php echo $badge_class; ?>">
 																<?php echo $status; ?>
 															</span>
+															<?php if ($uptime): ?>
+																<br><small class="text-muted" style="white-space: nowrap;">
+																	<i class="bi bi-clock"></i> <?php echo $uptime; ?>
+																</small>
+															<?php endif; ?>
 														</div>
-														<?php if ($uptime): ?>
-															<small class="text-muted" style="display: block; margin-top: 4px;">
-																<i class="bi bi-clock"></i> <?php echo $uptime; ?>
-															</small>
-														<?php endif; ?>
 													</td>
 													<td class="text-right">
-														<div class="btn-group btn-group-sm float-right" role="group">
+														<div class="btn-group btn-group-sm" role="group">
 															<?php if ($status == 'RUNNING'): ?>
 																<a href="/control/stop/<?php echo $name . '/' . urlencode($item_name); ?>" 
-																   class="btn btn-outline-danger btn-sm" title="Stop this process" data-bs-toggle="tooltip">
+																   class="btn btn-danger btn-sm" title="Stop this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-stop-fill"></i>
 																</a>
 																<a href="/control/restart/<?php echo $name . '/' . urlencode($item_name); ?>" 
-																   class="btn btn-outline-warning btn-sm" title="Restart this process" data-bs-toggle="tooltip">
+																   class="btn btn-warning btn-sm" title="Restart this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-arrow-clockwise"></i>
 																</a>
 															<?php elseif (in_array($status, ['STOPPED', 'EXITED', 'FATAL'])): ?>
 																<a href="/control/start/<?php echo $name . '/' . urlencode($item_name); ?>" 
-																   class="btn btn-outline-success btn-sm" title="Start this process" data-bs-toggle="tooltip">
+																   class="btn btn-success btn-sm" title="Start this process" data-bs-toggle="tooltip">
 																	<i class="bi bi-play-fill"></i>
 																</a>
 															<?php endif; ?>
