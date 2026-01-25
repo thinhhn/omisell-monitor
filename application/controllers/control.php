@@ -14,6 +14,11 @@ class Control extends MY_Controller
     {
         parent::__construct();
         $this->load->config('supervisor');
+        
+        // Prevent caching for control actions (important for Cloudflare/CDN)
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
     }
 
     /**
