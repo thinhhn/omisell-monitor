@@ -329,9 +329,10 @@
 					}
 				?>
 				<?php } // End foreach servers ?>
-				<?php
-				}
-				if($alert && !$muted && $this->config->item('enable_alarm')){
+		</div> <!-- End row -->
+		
+		<?php
+		if($alert && !$muted && $this->config->item('enable_alarm')){
 					echo '<embed height="0" width="0" src="'.base_url('/sounds/alert.mp3').'">';
 				}
 				if($alert){
