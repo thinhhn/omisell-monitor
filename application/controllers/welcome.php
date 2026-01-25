@@ -76,6 +76,94 @@ class Welcome extends MY_Controller
     }
     
     /**
+     * Modern dashboard view (V2) with Tailwind CSS
+     */
+    public function v2()
+    {
+        $mute = $this->input->get('mute');
+        
+        if ($this->input->get('mute') == 1) {
+            $mute_time = time() + 600;
+            setcookie('mute', $mute_time, $mute_time, '/');
+            redirect('welcome/v2');
+        }
+        
+        if ($this->input->get('mute') == -1) {
+            setcookie('mute', 0, time() - 1, '/');
+            redirect('welcome/v2');
+        }
+
+        $data['muted'] = $this->input->cookie('mute');
+        $data['load_time_start'] = microtime(true);
+
+        $this->load->helper('date');
+        $servers = $this->config->item('supervisor_servers');
+        
+        // Prepare data variables
+        $data['servers'] = $servers;
+        $data['alert'] = false;
+        
+        // Load data from all servers simultaneously
+        $parallel_requests = [];
+        $index = 0;
+        
+        foreach ($servers as $name => $config) {
+            $parallel_requests['list_' . $index] = [
+                'server' => $name,
+                'method' => 'getAllProcessInfo',
+                'request' => []
+            ];
+            $parallel_requests['version_' . $index] = [
+                'server' => $name,
+                'method' => 'getSupervisorVersion',
+                'request' => []
+            ];
+            $parallel_requests['stats_' . $index] = [
+                'server' => $name,
+                'method' => 'getSystemStats',
+                'request' => []
+            ];
+            $index++;
+        }
+        
+        // Execute all requests in parallel
+        $responses = $this->_parallel_requests_no_cache($parallel_requests);
+        
+        // Process parallel responses
+        $index = 0;
+        foreach ($servers as $name => $config) {
+            $data['list'][$name] = isset($responses['list_' . $index]) 
+                ? $responses['list_' . $index] 
+                : ['error' => 'Failed to get process info'];
+                
+            $data['version'][$name] = isset($responses['version_' . $index]) 
+                ? $responses['version_' . $index] 
+                : ['error' => 'Failed to get version'];
+            
+            // Get system stats
+            $data['stats'][$name] = $this->_getServerStats($name, $config);
+            
+            // Check for alerts
+            if (is_array($data['list'][$name])) {
+                foreach ($data['list'][$name] as $proc) {
+                    if (is_array($proc) && isset($proc['statename'])) {
+                        if (in_array($proc['statename'], ['FATAL', 'BACKOFF'])) {
+                            $data['alert'] = true;
+                        }
+                    }
+                }
+            }
+            
+            $index++;
+        }
+        
+        $data['cfg'] = $servers;
+        $data['load_time'] = round((microtime(true) - $data['load_time_start']) * 1000, 2);
+        
+        $this->load->view('welcome_v2', $data);
+    }
+    
+    /**
      * AJAX endpoint for real-time updates
      */
     public function ajaxUpdate()
