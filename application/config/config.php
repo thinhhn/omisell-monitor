@@ -22,7 +22,8 @@ if (file_exists(APPPATH . 'config/environments.php')) {
 
 // If not set by environment config, leave empty for auto-detection
 if (!isset($config['base_url'])) {
-    $config['base_url'] = '';
+    // Auto-detect base URL
+    $config['base_url'] = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . str_replace(basename($_SERVER['SCRIPT_NAME']), "", $_SERVER['SCRIPT_NAME']);
 }
 
 /*

@@ -29,7 +29,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "Process $worker started successfully on $server");
         }
         
-        redirect(base_url());
+        redirect('welcome');
     }
 
     /**
@@ -45,7 +45,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "All processes started successfully on server $server");
         }
         
-        redirect(base_url());
+        redirect('welcome');
     }
 
     /**
@@ -61,7 +61,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "Process $worker stopped successfully on $server");
         }
         
-        redirect(base_url());
+        redirect('welcome');
     }
 
     /**
@@ -77,7 +77,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "All processes stopped successfully on server $server");
         }
         
-        redirect(base_url());
+        redirect('welcome');
     }
 
     /**
@@ -99,7 +99,7 @@ class Control extends MY_Controller
         if (isset($stop_result['error'])) {
             $log[] = "Stop failed: " . $stop_result['error'];
             $this->session->set_flashdata('error', "Failed to stop $worker for restart: " . $stop_result['error'] . " | Log: " . implode(' | ', $log));
-            redirect(base_url());
+            redirect('welcome');
             return;
         }
         $log[] = "Stop command sent successfully";
@@ -136,7 +136,7 @@ class Control extends MY_Controller
         if (isset($start_result['error'])) {
             $log[] = "Start failed: " . $start_result['error'];
             $this->session->set_flashdata('error', "Failed to start $worker after stop. Process is now STOPPED. Error: " . $start_result['error'] . " | Log: " . implode(' | ', $log));
-            redirect(base_url());
+            redirect('welcome');
             return;
         }
         $log[] = "Start command sent successfully";
@@ -180,7 +180,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('error', $error_msg);
         }
         
-        redirect(base_url());
+        redirect('welcome');
     }
 
     /**
@@ -193,12 +193,12 @@ class Control extends MY_Controller
         
         if (isset($stop_result['error'])) {
             $this->session->set_flashdata('error', "Failed to stop processes for restart on $server: " . $stop_result['error']);
-            redirect(base_url());
+            redirect('welcome');
             return;
         }
         
         // Wait for clean shutdown
-        sleep(2);
+        sleep(5);
         
         // Start all processes
         $start_result = $this->_request($server, 'startAllProcesses', [true], false);
@@ -209,7 +209,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "All processes restarted successfully on server $server");
         }
         
-        redirect(base_url());
+        redirect('welcome');
     }
 
     /**
@@ -225,7 +225,7 @@ class Control extends MY_Controller
             $this->session->set_flashdata('success', "Logs cleared for process $worker on $server");
         }
         
-        redirect(base_url());
+        redirect('welcome');
     }
 
     /**
