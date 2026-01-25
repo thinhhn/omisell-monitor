@@ -101,7 +101,7 @@ class MY_Controller extends CI_Controller
     }
 
     /**
-     * Execute XML-RPC request with retry mechanism
+     * Execute XML-RPC request with retry mechanism and better error handling
      */
     private function executeRequest($server, $method, $request, $config)
     {
@@ -110,43 +110,133 @@ class MY_Controller extends CI_Controller
         
         while ($retry_count <= $max_retries) {
             try {
-                $this->load->library('xmlrpc', [], $server);
-                $this->{$server}->initialize();
-                $this->{$server}->server($config['url'], $config['port']);
-                $this->{$server}->method('supervisor.' . $method);
-                $this->{$server}->timeout($this->config->item('timeout'));
-                
-                if (isset($config['username']) && isset($config['password'])) {
-                    $this->{$server}->setCredentials($config['username'], $config['password']);
+                // Try cURL approach first (more reliable)
+                $result = $this->executeRequestWithCurl($server, $method, $request, $config);
+                if (!isset($result['error'])) {
+                    return $result;
                 }
                 
-                $this->{$server}->request($request);
+                // Fallback to CodeIgniter's XML-RPC library
+                $this->load->library('xmlrpc', [], $server . '_' . $retry_count);
+                $xmlrpc_instance = $server . '_' . $retry_count;
+                
+                $this->{$xmlrpc_instance}->initialize();
+                $this->{$xmlrpc_instance}->server($config['url'], $config['port']);
+                $this->{$xmlrpc_instance}->method('supervisor.' . $method);
+                $this->{$xmlrpc_instance}->timeout($this->config->item('timeout'));
+                
+                // Enable debugging for better error messages
+                $this->{$xmlrpc_instance}->set_debug(TRUE);
+                
+                if (isset($config['username']) && isset($config['password'])) {
+                    $this->{$xmlrpc_instance}->setCredentials($config['username'], $config['password']);
+                }
+                
+                $this->{$xmlrpc_instance}->request($request);
 
-                if (!$this->{$server}->send_request()) {
-                    $error = $this->{$server}->display_error();
+                if (!$this->{$xmlrpc_instance}->send_request()) {
+                    $error = $this->{$xmlrpc_instance}->display_error();
+                    
+                    // Log detailed error for debugging
+                    $this->logXmlRpcError($server, $method, $error, $config);
                     
                     // If it's a temporary error, retry
                     if ($retry_count < $max_retries && $this->isTemporaryError($error)) {
                         $retry_count++;
-                        usleep(100000); // Wait 100ms before retry
+                        usleep(200000); // Wait 200ms before retry
                         continue;
                     }
                     
-                    return ['error' => $error, 'server' => $server];
+                    return [
+                        'error' => $this->formatXmlRpcError($error), 
+                        'server' => $server,
+                        'method' => $method
+                    ];
                 } else {
-                    return $this->{$server}->display_response();
+                    $response = $this->{$xmlrpc_instance}->display_response();
+                    
+                    // Clean up the instance
+                    unset($this->{$xmlrpc_instance});
+                    
+                    return $response;
                 }
             } catch (Exception $e) {
+                $this->logXmlRpcError($server, $method, $e->getMessage(), $config);
+                
                 if ($retry_count < $max_retries) {
                     $retry_count++;
-                    usleep(100000);
+                    usleep(200000);
                     continue;
                 }
-                return ['error' => 'Connection failed: ' . $e->getMessage(), 'server' => $server];
+                return [
+                    'error' => 'Connection failed: ' . $e->getMessage(), 
+                    'server' => $server,
+                    'method' => $method
+                ];
             }
         }
         
-        return ['error' => 'Max retries exceeded', 'server' => $server];
+        return [
+            'error' => 'Max retries exceeded', 
+            'server' => $server,
+            'method' => $method
+        ];
+    }
+    
+    /**
+     * Execute XML-RPC request using cURL (more reliable)
+     */
+    private function executeRequestWithCurl($server, $method, $request, $config)
+    {
+        $url = $config['url'] . ':' . $config['port'] . '/RPC2';
+        
+        // Build proper XML-RPC request
+        $xml_request = $this->buildXmlrpcRequest('supervisor.' . $method, $request);
+        
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $xml_request,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => $this->config->item('timeout') ?: 10,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: text/xml',
+                'Content-Length: ' . strlen($xml_request),
+                'User-Agent: SupervisorMonitor/1.0',
+                'Accept: text/xml'
+            ],
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false
+        ]);
+        
+        if (isset($config['username']) && isset($config['password'])) {
+            curl_setopt($ch, CURLOPT_USERPWD, $config['username'] . ':' . $config['password']);
+            curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+        }
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        $curl_info = curl_getinfo($ch);
+        curl_close($ch);
+        
+        if ($curl_error) {
+            return ['error' => "cURL Error: $curl_error"];
+        }
+        
+        if ($http_code !== 200) {
+            return ['error' => "HTTP Error: $http_code - " . substr($response, 0, 200)];
+        }
+        
+        if (empty($response)) {
+            return ['error' => 'Empty response from server'];
+        }
+        
+        // Parse XML-RPC response
+        return $this->parseXmlrpcResponse($response);
     }
 
     /**
@@ -333,59 +423,177 @@ class MY_Controller extends CI_Controller
      */
     private function buildXmlrpcRequest($method, $params)
     {
-        $xml = '<?xml version="1.0"?><methodCall>';
-        $xml .= '<methodName>' . htmlspecialchars($method) . '</methodName>';
-        $xml .= '<params>';
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<methodCall>' . "\n";
+        $xml .= '<methodName>' . htmlspecialchars($method, ENT_XML1, 'UTF-8') . '</methodName>' . "\n";
+        $xml .= '<params>' . "\n";
         
-        foreach ($params as $param) {
-            $xml .= '<param><value>';
-            if (is_string($param)) {
-                $xml .= '<string>' . htmlspecialchars($param) . '</string>';
-            } elseif (is_int($param)) {
-                $xml .= '<int>' . $param . '</int>';
-            } elseif (is_bool($param)) {
-                $xml .= '<boolean>' . ($param ? '1' : '0') . '</boolean>';
+        if (!empty($params)) {
+            foreach ($params as $param) {
+                $xml .= '<param><value>';
+                if (is_string($param)) {
+                    $xml .= '<string>' . htmlspecialchars($param, ENT_XML1, 'UTF-8') . '</string>';
+                } elseif (is_int($param)) {
+                    $xml .= '<int>' . $param . '</int>';
+                } elseif (is_bool($param)) {
+                    $xml .= '<boolean>' . ($param ? '1' : '0') . '</boolean>';
+                } elseif (is_array($param)) {
+                    $xml .= '<array><data>';
+                    foreach ($param as $item) {
+                        $xml .= '<value><string>' . htmlspecialchars($item, ENT_XML1, 'UTF-8') . '</string></value>';
+                    }
+                    $xml .= '</data></array>';
+                }
+                $xml .= '</value></param>' . "\n";
             }
-            $xml .= '</value></param>';
         }
         
-        $xml .= '</params></methodCall>';
+        $xml .= '</params>' . "\n";
+        $xml .= '</methodCall>';
         return $xml;
     }
 
     /**
-     * Parse XML-RPC response
+     * Parse XML-RPC response with improved error handling
      */
     private function parseXmlrpcResponse($xml)
     {
-        // Simple XML parsing - in production, use proper XML parser
-        if (strpos($xml, '<fault>') !== false) {
-            return ['error' => 'XML-RPC Fault'];
+        // Clean up response
+        $xml = trim($xml);
+        
+        // Check if it's valid XML
+        if (empty($xml) || strpos($xml, '<?xml') === false) {
+            return ['error' => 'Invalid XML response: ' . substr($xml, 0, 100)];
         }
         
-        // Extract value from response (simplified)
-        preg_match('/<value>(.*?)<\/value>/s', $xml, $matches);
+        // Check for XML-RPC fault
+        if (strpos($xml, '<fault>') !== false) {
+            // Extract fault message
+            preg_match('/<string>(.*?)<\/string>/s', $xml, $matches);
+            $fault_message = isset($matches[1]) ? $matches[1] : 'Unknown XML-RPC fault';
+            return ['error' => 'XML-RPC Fault: ' . $fault_message];
+        }
+        
+        // Check for methodResponse
+        if (strpos($xml, '<methodResponse>') === false) {
+            return ['error' => 'Invalid XML-RPC response format'];
+        }
+        
+        // Try to use built-in XML parsing if available
+        if (function_exists('xmlrpc_decode')) {
+            $decoded = @xmlrpc_decode($xml);
+            if ($decoded !== null) {
+                return $decoded;
+            }
+        }
+        
+        // Fallback to manual parsing
+        preg_match('/<methodResponse>\s*<params>\s*<param>\s*<value>(.*?)<\/value>/s', $xml, $matches);
         if (isset($matches[1])) {
             return $this->parseXmlrpcValue($matches[1]);
         }
         
-        return ['error' => 'Invalid response'];
+        return ['error' => 'Could not parse XML-RPC response'];
     }
 
     /**
-     * Parse XML-RPC value (simplified)
+     * Parse XML-RPC value with better type handling
      */
     private function parseXmlrpcValue($value)
     {
-        // This is a simplified parser - in production use xmlrpc_decode
+        $value = trim($value);
+        
+        // Handle arrays
         if (strpos($value, '<array>') !== false) {
-            return []; // Simplified array handling
-        } elseif (strpos($value, '<string>') !== false) {
-            preg_match('/<string>(.*?)<\/string>/', $value, $matches);
-            return isset($matches[1]) ? $matches[1] : '';
+            $result = [];
+            preg_match_all('/<value>(.*?)<\/value>/s', $value, $array_matches);
+            foreach ($array_matches[1] as $item) {
+                $result[] = $this->parseXmlrpcValue($item);
+            }
+            return $result;
         }
         
-        return $value;
+        // Handle structs (dictionaries)
+        if (strpos($value, '<struct>') !== false) {
+            $result = [];
+            preg_match_all('/<member>\s*<name>(.*?)<\/name>\s*<value>(.*?)<\/value>\s*<\/member>/s', $value, $struct_matches, PREG_SET_ORDER);
+            foreach ($struct_matches as $match) {
+                $key = trim($match[1]);
+                $val = $this->parseXmlrpcValue($match[2]);
+                $result[$key] = $val;
+            }
+            return $result;
+        }
+        
+        // Handle strings
+        if (preg_match('/<string>(.*?)<\/string>/s', $value, $matches)) {
+            return html_entity_decode($matches[1], ENT_XML1, 'UTF-8');
+        }
+        
+        // Handle integers
+        if (preg_match('/<int>(.*?)<\/int>/', $value, $matches)) {
+            return (int) $matches[1];
+        }
+        
+        // Handle booleans
+        if (preg_match('/<boolean>(.*?)<\/boolean>/', $value, $matches)) {
+            return $matches[1] === '1' || $matches[1] === 'true';
+        }
+        
+        // Handle doubles/floats
+        if (preg_match('/<double>(.*?)<\/double>/', $value, $matches)) {
+            return (float) $matches[1];
+        }
+        
+        // Return as-is if no type wrapper found
+        return strip_tags($value);
+    }
+    
+    /**
+     * Log XML-RPC errors for debugging
+     */
+    private function logXmlRpcError($server, $method, $error, $config)
+    {
+        $log_dir = APPPATH . 'logs/';
+        if (!is_dir($log_dir)) {
+            mkdir($log_dir, 0755, true);
+        }
+        
+        $log_entry = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'server' => $server,
+            'method' => $method,
+            'error' => $error,
+            'url' => $config['url'] . ':' . $config['port'] . '/RPC2',
+            'has_auth' => isset($config['username'])
+        ];
+        
+        $log_file = $log_dir . 'xmlrpc_errors.log';
+        file_put_contents($log_file, json_encode($log_entry) . "\n", FILE_APPEND);
+    }
+    
+    /**
+     * Format XML-RPC error for better user display
+     */
+    private function formatXmlRpcError($error)
+    {
+        // Common error translations
+        $error_map = [
+            'The XML data received was either invalid or not in the correct form for XML-RPC' => 'Server không hỗ trợ XML-RPC hoặc cấu hình sai endpoint',
+            'Connection refused' => 'Không thể kết nối đến server (Connection refused)',
+            'Connection timed out' => 'Kết nối bị timeout',
+            'Could not connect to host' => 'Không thể kết nối đến host',
+            'HTTP/1.1 401 Unauthorized' => 'Sai username/password',
+            'HTTP/1.1 404 Not Found' => 'Endpoint /RPC2 không tồn tại'
+        ];
+        
+        foreach ($error_map as $pattern => $translation) {
+            if (strpos($error, $pattern) !== false) {
+                return $translation;
+            }
+        }
+        
+        return $error;
     }
 
 }
