@@ -463,10 +463,9 @@
 										<table class="table table-sm table-hover mb-0">
 											<thead class="table-light">
 												<tr>
-													<th>Process</th>
-													<th>Status</th>
-													<th>Uptime</th>
-													<th width="100">Actions</th>
+													<th width="40%">Process</th>
+													<th width="35%">Status</th>
+													<th width="25%" class="text-right">Actions</th>
 												</tr>
 											</thead>
 											<tbody>
@@ -475,7 +474,7 @@
 													foreach($procs as $item):
 														// Skip if not an array (error case)
 														if (!is_array($item)) {
-															echo '<tr><td colspan="4" class="text-danger">' . htmlspecialchars($item) . '</td></tr>';
+															echo '<tr><td colspan="3" class="text-danger">' . htmlspecialchars($item) . '</td></tr>';
 															continue;
 														}
 														
@@ -517,17 +516,19 @@
 														<?php endif; ?>
 													</td>
 													<td>
-														<span class="badge bg-<?php echo $badge_class; ?>">
-															<?php echo $status; ?>
-														</span>
+														<div>
+															<span class="badge bg-<?php echo $badge_class; ?>">
+																<?php echo $status; ?>
+															</span>
+														</div>
+														<?php if ($uptime): ?>
+															<small class="text-muted" style="display: block; margin-top: 4px;">
+																<i class="bi bi-clock"></i> <?php echo $uptime; ?>
+															</small>
+														<?php endif; ?>
 													</td>
-													<td>
-														<small class="text-muted">
-															<?php echo $uptime ? $uptime : '—'; ?>
-														</small>
-													</td>
-													<td>
-														<div class="btn-group btn-group-sm" role="group">
+													<td class="text-right">
+														<div class="btn-group btn-group-sm float-right" role="group">
 															<?php if ($status == 'RUNNING'): ?>
 																<a href="/control/stop/<?php echo $name . '/' . urlencode($item_name); ?>" 
 																   class="btn btn-outline-danger btn-sm" title="Stop this process" data-bs-toggle="tooltip">
@@ -551,7 +552,7 @@
 												else:
 												?>
 												<tr>
-													<td colspan="4" class="text-center text-muted py-3">
+													<td colspan="3" class="text-center text-muted py-3">
 														<i class="bi bi-inbox"></i> No processes found
 													</td>
 												</tr>
