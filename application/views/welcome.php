@@ -383,15 +383,15 @@
 										<?php if (!isset($procs['error'])): ?>
 										<div class="btn-group btn-group-sm" role="group">
 											<a href="/control/startall/<?php echo $name; ?>" 
-											   class="btn btn-outline-light btn-sm" title="Start All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+											   class="btn btn-success btn-sm" title="Start All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
 												<i class="bi bi-play-fill"></i>
 											</a>
 											<a href="/control/restartall/<?php echo $name; ?>" 
-											   class="btn btn-outline-light btn-sm" title="Restart All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+											   class="btn btn-warning btn-sm" title="Restart All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
 												<i class="bi bi-arrow-clockwise"></i>
 											</a>
 											<a href="/control/stopall/<?php echo $name; ?>" 
-											   class="btn btn-outline-light btn-sm" title="Stop All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
+											   class="btn btn-danger btn-sm" title="Stop All Processes" data-bs-toggle="tooltip" style="padding: 2px 8px; font-size: 0.75rem;">
 												<i class="bi bi-stop-fill"></i>
 											</a>
 										</div>
