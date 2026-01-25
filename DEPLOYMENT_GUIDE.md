@@ -84,7 +84,7 @@ sudo nano application/config/supervisor.server.php
 ### Bước 3: Cấu hình Nginx
 ```bash
 # Copy file config
-sudo cp nginx_supervisor_monitor.conf /etc/nginx/conf.d/supervisor-monitor.conf
+sudo cp supervisord.omisell.com.conf /etc/nginx/conf.d/supervisor-monitor.conf
 
 # Sửa file config
 sudo nano /etc/nginx/conf.d/supervisor-monitor.conf

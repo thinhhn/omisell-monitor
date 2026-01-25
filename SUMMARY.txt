@@ -12,7 +12,7 @@
 📄 DEPLOYMENT FILES:
   ✓ deploy.sh                      - Automated deployment script (executable)
   ✓ test_deployment.sh             - Deployment verification script (executable)
-  ✓ nginx_supervisor_monitor.conf  - Nginx configuration template
+  ✓ supervisord.omisell.com.conf  - Nginx configuration template
   ✓ DEPLOYMENT_GUIDE.md            - Detailed deployment documentation
   ✓ README_DEPLOYMENT.md           - Quick start guide
 
@@ -183,7 +183,7 @@ supervisord-monitor/
 ├── system/                          (CodeIgniter core)
 ├── deploy.sh                        (Deployment script)
 ├── test_deployment.sh               (Test script)
-├── nginx_supervisor_monitor.conf    (Nginx config)
+├── supervisord.omisell.com.conf    (Nginx config)
 ├── DEPLOYMENT_GUIDE.md              (Full guide)
 └── README_DEPLOYMENT.md             (Quick start)
 
@@ -194,7 +194,7 @@ supervisord-monitor/
 Documentation:
   📖 README_DEPLOYMENT.md    - Quick start guide
   📖 DEPLOYMENT_GUIDE.md     - Comprehensive deployment guide
-  📄 nginx_supervisor_monitor.conf - Nginx configuration reference
+  📄 supervisord.omisell.com.conf - Nginx configuration reference
 
 Scripts:
   🚀 deploy.sh               - Run automated deployment

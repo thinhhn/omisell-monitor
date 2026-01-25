@@ -3,7 +3,7 @@
 ## 📦 Package Contents
 
 ### Configuration Files
-- `nginx_supervisor_monitor.conf` - Nginx configuration template
+- `supervisord.omisell.com.conf` - Nginx configuration template
 - `deploy.sh` - Automated deployment script
 - `test_deployment.sh` - Deployment verification script
 - `DEPLOYMENT_GUIDE.md` - Detailed deployment documentation
@@ -311,7 +311,7 @@ location ~ \.php$ {
 ## 📚 Additional Resources
 
 - **Full Documentation:** `DEPLOYMENT_GUIDE.md`
-- **Nginx Config Template:** `nginx_supervisor_monitor.conf`
+- **Nginx Config Template:** `supervisord.omisell.com.conf`
 - **Automated Deployment:** `deploy.sh`
 - **Test Suite:** `test_deployment.sh`
 
