@@ -69,9 +69,18 @@ class Events extends MY_Controller
         // Use APPPATH constant for proper path resolution
         $script_path = APPPATH . 'scripts/stat_remote.sh';
         $full_command = "sh " . escapeshellarg($script_path) . " 2>&1";
+        
+        // Log the command for debugging
+        $log_entry = date('Y-m-d H:i:s') . " - Command: $full_command\n";
+        file_put_contents(APPPATH . 'logs/stat_debug.log', $log_entry, FILE_APPEND);
+        
         exec($full_command, $output, $return_var);
         
         $output_string = implode("\n", $output);
+        
+        // Log the result
+        $log_entry = date('Y-m-d H:i:s') . " - Return Code: $return_var, Output Lines: " . count($output) . ", First Line: " . ($output[0] ?? 'EMPTY') . "\n";
+        file_put_contents(APPPATH . 'logs/stat_debug.log', $log_entry, FILE_APPEND);
         
         // Log for debugging
         $log_data = [
