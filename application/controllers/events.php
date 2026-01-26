@@ -88,6 +88,7 @@ class Events extends MY_Controller
                 'stats' => $stats,
                 'total_events' => array_sum($stats)
             ]);
+            exit;
         } else {
             echo json_encode([
                 'success' => false,
@@ -95,6 +96,7 @@ class Events extends MY_Controller
                 'raw_output' => $output_string,
                 'return_code' => $return_var
             ]);
+            exit;
         }
     }
     

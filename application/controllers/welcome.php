@@ -233,6 +233,7 @@ class Welcome extends MY_Controller
         $data['timestamp'] = time();
         
         echo json_encode($data);
+        exit;
     }
     
     /**
