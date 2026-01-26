@@ -453,9 +453,7 @@
         
         fetch(url, {
             method: 'GET',
-            credentials: 'same-origin',
             headers: {
-                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
@@ -497,9 +495,7 @@
         
         fetch('<?php echo site_url("welcome/getData"); ?>', {
             method: 'GET',
-            credentials: 'same-origin',
             headers: {
-                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })

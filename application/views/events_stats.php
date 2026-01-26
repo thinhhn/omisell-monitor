@@ -90,9 +90,7 @@
         // Fetch stats via AJAX
         fetch('<?php echo site_url('events/get_stats'); ?>', {
             method: 'GET',
-            credentials: 'same-origin',
             headers: {
-                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
