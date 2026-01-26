@@ -70,19 +70,12 @@ class Events extends MY_Controller
         
         $output_string = implode("\n", $output);
         
-        // Try to parse the entire output as JSON (multi-line)
-        $stats = json_decode($output_string, true);
+        // Extract JSON from output (remove any non-JSON text before/after)
+        preg_match('/\{[\s\S]*\}/', $output_string, $matches);
+        $json_string = isset($matches[0]) ? $matches[0] : $output_string;
         
-        // If that doesn't work, try line by line
-        if ($stats === null || !is_array($stats)) {
-            foreach ($output as $line) {
-                $decoded = json_decode($line, true);
-                if ($decoded !== null && is_array($decoded)) {
-                    $stats = $decoded;
-                    break;
-                }
-            }
-        }
+        // Try to parse the JSON
+        $stats = json_decode($json_string, true);
         
         if ($stats !== null && is_array($stats)) {
             echo json_encode([
@@ -95,7 +88,7 @@ class Events extends MY_Controller
             echo json_encode([
                 'success' => false,
                 'error' => 'Failed to parse stats or script not found',
-                'raw_output' => $output_string,
+                'raw_output' => substr($output_string, 0, 500),
                 'return_code' => $return_var
             ]);
             exit;
