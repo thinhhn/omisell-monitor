@@ -123,7 +123,8 @@ $config['supervisor_servers'] = array(
 );
 
 // Set timeout connecting to remote supervisord RPC2 interface
-$config['timeout'] = 3;
+// Note: Increased to 60s to accommodate stopAllProcesses/startAllProcesses which can take time
+$config['timeout'] = 60;
 
 // Path to Redmine new issue url
 $config['redmine_url'] = 'http://redmine.url/path_to_new_issue_url';

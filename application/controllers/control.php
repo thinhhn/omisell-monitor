@@ -92,16 +92,20 @@ class Control extends MY_Controller
     }
 
     /**
-     * Start all processes on a server
+     * Start all processes on a server using parallel operations
      */
     public function startall($server)
     {
-        $result = $this->_request($server, 'startAllProcesses', [true], false);
+        // Increase time limit for long operations
+        set_time_limit(120);
+        
+        // Use parallel start operations for better performance
+        $result = $this->startAllProcessesParallel($server);
         
         if (isset($result['error'])) {
-            $this->_respond(false, "Failed to start all processes on $server: " . $result['error']);
+            $this->_respond(false, $result['error']);
         } else {
-            $this->_respond(true, "All processes started successfully on server $server");
+            $this->_respond($result['success'], $result['message'], $result);
         }
     }
 
@@ -139,21 +143,26 @@ class Control extends MY_Controller
     }
 
     /**
-     * Stop all processes on a server
+     * Stop all processes on a server using parallel operations (much faster)
      */
     public function stopall($server)
     {
-        $result = $this->_request($server, 'stopAllProcesses', [true], false);
+        // Increase time limit for long operations
+        set_time_limit(120);
+        
+        // Use parallel stop operations for better performance
+        // Instead of sequential stopAllProcesses (12s), use parallel stopProcess (2-3s)
+        $result = $this->stopAllProcessesParallel($server);
         
         if (isset($result['error'])) {
-            $this->_respond(false, "Failed to stop all processes on $server: " . $result['error']);
+            $this->_respond(false, $result['error']);
         } else {
-            $this->_respond(true, "All processes stopped successfully on server $server");
+            $this->_respond($result['success'], $result['message'], $result);
         }
     }
 
     /**
-     * Restart a specific process with detailed monitoring
+     * Restart a specific process with detailed monitoring and optimized polling
      */
     public function restart($server, $worker)
     {
@@ -194,18 +203,22 @@ class Control extends MY_Controller
         }
         $log[] = "Stop command sent successfully";
         
-        // Step 2: Wait and verify stop
+        // Step 2: Wait and verify stop with optimized polling (0.5s intervals)
         $stop_verified = false;
         $log[] = "Waiting for process to stop...";
-        for ($i = 0; $i < 30; $i++) { // Increased to 30 seconds
-            sleep(1);
+        for ($i = 0; $i < 60; $i++) { // 60 * 0.5s = 30 seconds max
+            usleep(500000); // 0.5 second delay (faster than 1s)
             $check_info = $this->_request($server, 'getProcessInfo', [$worker], false);
             $current_state = isset($check_info['statename']) ? $check_info['statename'] : 'UNKNOWN';
-            $log[] = "Check $i: state=$current_state";
+            
+            // Only log state changes or every 10 checks (5s)
+            if ($i % 10 == 0 || $current_state === 'STOPPED' || $current_state === 'EXITED') {
+                $log[] = "Check $i: state=$current_state";
+            }
             
             if ($current_state === 'STOPPED' || $current_state === 'EXITED') {
                 $stop_verified = true;
-                $log[] = "Process stopped successfully";
+                $log[] = "Process stopped successfully after " . ($i * 0.5) . "s";
                 break;
             }
         }
@@ -217,9 +230,9 @@ class Control extends MY_Controller
             }
         }
         
-        // Wait a bit longer to ensure clean shutdown
-        sleep(3);
-        $log[] = "Waited 3s for clean shutdown";
+        // Wait a bit longer to ensure clean shutdown (reduced from 3s to 1s)
+        usleep(1000000);
+        $log[] = "Waited 1s for clean shutdown";
         
         // Step 3: Start the process
         $log[] = "Attempting to start process...";
@@ -232,32 +245,27 @@ class Control extends MY_Controller
         }
         $log[] = "Start command sent successfully";
         
-        // Step 4: Wait and verify start
+        // Step 4: Wait and verify start with optimized polling (0.5s intervals)
         $start_verified = false;
         $final_state = 'UNKNOWN';
         $log[] = "Waiting for process to start...";
-        for ($i = 0; $i < 60; $i++) { // Increased to 60 seconds (1 minute)
-            sleep(1);
+        for ($i = 0; $i < 120; $i++) { // 120 * 0.5s = 60 seconds max
+            usleep(500000); // 0.5 second delay (faster than 1s)
             $final_info = $this->_request($server, 'getProcessInfo', [$worker], false);
             $final_state = isset($final_info['statename']) ? $final_info['statename'] : 'UNKNOWN';
             
-            // Only log every 5 seconds to reduce log spam
-            if ($i % 5 == 0 || $final_state === 'RUNNING' || $final_state === 'BACKOFF' || $final_state === 'FATAL') {
+            // Only log state changes or every 10 checks (5s)
+            if ($i % 10 == 0 || $final_state === 'RUNNING' || $final_state === 'BACKOFF' || $final_state === 'FATAL') {
                 $log[] = "Start check $i: state=$final_state";
             }
             
             if ($final_state === 'RUNNING') {
                 $start_verified = true;
-                $log[] = "Process started and running successfully";
+                $log[] = "Process started and running successfully after " . ($i * 0.5) . "s";
                 break;
-            } elseif ($final_state === 'STARTING') {
-                // Keep waiting, it's starting
-                if ($i % 10 == 0) {
-                    $log[] = "Process is still starting... (${i}s elapsed)";
-                }
             } elseif ($final_state === 'BACKOFF' || $final_state === 'FATAL') {
-                // Process failed to start properly
-                $log[] = "Process entered error state: $final_state";
+                // Process failed to start properly - exit early instead of waiting full timeout
+                $log[] = "Process entered error state: $final_state (exiting early)";
                 break;
             }
         }
@@ -273,59 +281,61 @@ class Control extends MY_Controller
     }
 
     /**
-     * Restart all processes on a server with retry logic
+     * Restart all processes on a server using parallel operations
+     * Much faster than sequential: 2-3s stop + 2-3s start = 4-6s total
      */
     public function restartall($server)
     {
         // Increase time limit for long operations
-        set_time_limit(120);
+        set_time_limit(180);
         
-        // Stop all processes first
-        $stop_result = $this->_request($server, 'stopAllProcesses', [true], false);
+        $log = [];
+        $log[] = "Starting parallel restartall on server: $server";
         
-        if (isset($stop_result['error'])) {
-            $this->_respond(false, "Failed to stop processes for restart on $server: " . $stop_result['error']);
+        // Stop all processes in parallel (2-3s instead of 12s)
+        $log[] = "Stopping all processes in parallel...";
+        $stop_result = $this->stopAllProcessesParallel($server);
+        
+        if (isset($stop_result['error']) || !$stop_result['success']) {
+            $log[] = "Error stopping processes: " . (isset($stop_result['error']) ? $stop_result['error'] : $stop_result['message']);
+            $this->_respond(false, "Failed to stop processes for restart: " . (isset($stop_result['error']) ? $stop_result['error'] : $stop_result['message']));
             return;
         }
         
-        // Wait for clean shutdown
-        sleep(10);
+        $log[] = "Stop completed in " . $stop_result['elapsed_time'] . "s (" . $stop_result['stopped_count'] . " processes)";
         
-        // Try to start all processes with retry (max 2 attempts)
-        $max_retries = 2;
-        $start_result = null;
+        // Wait a bit for clean shutdown
+        $log[] = "Waiting 2s for clean shutdown...";
+        usleep(2000000);
         
-        for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
-            $start_result = $this->_request($server, 'startAllProcesses', [true], false);
-            
-            if (!isset($start_result['error'])) {
-                // Success
-                $this->security_helper->log_security_event('RESTARTALL_SUCCESS', [
-                    'server' => $server,
-                    'attempts' => $attempt
-                ]);
-                $this->_respond(true, "All processes restarted successfully on server $server (attempt $attempt)");
-                return;
-            }
-            
-            // If this is not the last attempt, wait and retry
-            if ($attempt < $max_retries) {
-                sleep(5);
-                $this->security_helper->log_security_event('RESTARTALL_RETRY', [
-                    'server' => $server,
-                    'attempt' => $attempt,
-                    'error' => $start_result['error']
-                ]);
-            }
+        // Start all processes in parallel (2-3s)
+        $log[] = "Starting all processes in parallel...";
+        $start_result = $this->startAllProcessesParallel($server);
+        
+        if (isset($start_result['error']) || !$start_result['success']) {
+            $log[] = "Error starting processes: " . (isset($start_result['error']) ? $start_result['error'] : $start_result['message']);
+            $this->security_helper->log_security_event('RESTARTALL_PARTIAL', [
+                'server' => $server,
+                'stopped' => $stop_result['stopped_count'],
+                'start_error' => isset($start_result['error']) ? $start_result['error'] : $start_result['message']
+            ]);
+            $this->_respond(false, "Failed to start processes after stop. " . (isset($start_result['error']) ? $start_result['error'] : $start_result['message']));
+            return;
         }
         
-        // All retries failed
-        $this->security_helper->log_security_event('RESTARTALL_FAILED', [
+        $log[] = "Start completed in " . $start_result['elapsed_time'] . "s (" . $start_result['started_count'] . " processes)";
+        
+        $total_time = $stop_result['elapsed_time'] + $start_result['elapsed_time'] + 2;  // +2s for wait
+        $log[] = "Total time: " . round($total_time, 2) . "s";
+        
+        $this->security_helper->log_security_event('RESTARTALL_SUCCESS', [
             'server' => $server,
-            'attempts' => $max_retries,
-            'error' => $start_result['error']
+            'stopped_count' => $stop_result['stopped_count'],
+            'started_count' => $start_result['started_count'],
+            'total_time' => round($total_time, 2)
         ]);
-        $this->_respond(false, "Failed to start processes after restart on $server after $max_retries attempts: " . $start_result['error']);
+        
+        $this->_respond(true, "All processes restarted successfully in parallel (Stop: " . $stop_result['elapsed_time'] . "s + Start: " . $start_result['elapsed_time'] . "s = " . round($total_time, 2) . "s total)", ['stopped_count' => $stop_result['stopped_count'], 'started_count' => $start_result['started_count'], 'total_time' => round($total_time, 2)]);
     }
 
     /**

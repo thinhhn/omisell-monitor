@@ -182,13 +182,17 @@ class MY_Controller extends CI_Controller
         // Build proper XML-RPC request
         $xml_request = $this->buildXmlrpcRequest('supervisor.' . $method, $request);
         
+        // Determine appropriate timeout based on method
+        // Batch operations need much longer timeout as they block supervisor
+        $timeout = $this->getTimeoutForMethod($method);
+        
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $xml_request,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $this->config->item('timeout') ?: 10,
+            CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: text/xml',
@@ -226,6 +230,38 @@ class MY_Controller extends CI_Controller
         
         // Parse XML-RPC response
         return $this->parseXmlrpcResponse($response);
+    }
+    
+    /**
+     * Get appropriate timeout for different supervisor methods
+     * Batch operations need longer timeouts as they block supervisor
+     */
+    private function getTimeoutForMethod($method)
+    {
+        switch ($method) {
+            // Batch operations - these block supervisor while executing
+            case 'stopAllProcesses':
+            case 'startAllProcesses':
+                return 90; // 90 seconds for batch operations
+            
+            // Individual operations - faster
+            case 'stopProcess':
+            case 'startProcess':
+            case 'restartProcess':
+                return 30; // 30 seconds for individual operations
+            
+            // Information queries - very fast
+            case 'getAllProcessInfo':
+            case 'getProcessInfo':
+            case 'getPID':
+            case 'getState':
+            case 'getSupervisorVersion':
+                return 10; // 10 seconds for read operations
+            
+            // Default
+            default:
+                return $this->config->item('timeout') ?: 60;
+        }
     }
 
     /**
@@ -655,6 +691,329 @@ class MY_Controller extends CI_Controller
         }
         
         return $error;
+    }
+    
+    /**
+     * Parallel stop all processes on a server
+     * Uses curl_multi to stop processes in parallel instead of sequential
+     * Expected time: 2-3 seconds instead of 12+ seconds
+     */
+    public function stopAllProcessesParallel($server)
+    {
+        $servers = $this->config->item('supervisor_servers');
+        if (!isset($servers[$server])) {
+            return ['error' => 'Invalid server: ' . $server];
+        }
+        
+        $config = $servers[$server];
+        $log = [];
+        $log[] = "Getting all processes...";
+        
+        // First, get all processes
+        $processes_result = $this->_request($server, 'getAllProcessInfo', [], false);
+        
+        if (isset($processes_result['error'])) {
+            $log[] = "Error getting process list: " . $processes_result['error'];
+            return [
+                'success' => false,
+                'message' => 'Failed to get process list',
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        if (!is_array($processes_result)) {
+            $log[] = "Invalid process list format";
+            return [
+                'success' => false,
+                'message' => 'Invalid process list format',
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        $process_count = count($processes_result);
+        $log[] = "Found $process_count processes";
+        
+        if ($process_count === 0) {
+            $log[] = "No processes to stop";
+            return [
+                'success' => true,
+                'message' => 'No processes to stop',
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        // Build parallel stop requests
+        $log[] = "Building parallel stop requests...";
+        $stop_requests = [];
+        
+        foreach ($processes_result as $index => $process) {
+            $process_name = isset($process['name']) ? $process['name'] : '';
+            $process_state = isset($process['statename']) ? $process['statename'] : 'UNKNOWN';
+            
+            // Only stop if not already stopped
+            if ($process_state !== 'STOPPED' && $process_state !== 'EXITED') {
+                $stop_requests[] = [
+                    'index' => $index,
+                    'server' => $server,
+                    'method' => 'stopProcess',
+                    'request' => [$process_name, true],  // wait=true for graceful shutdown
+                    'process_name' => $process_name
+                ];
+            }
+        }
+        
+        $processes_to_stop = count($stop_requests);
+        $log[] = "Stopping $processes_to_stop processes in parallel...";
+        
+        if ($processes_to_stop === 0) {
+            $log[] = "All processes already stopped";
+            return [
+                'success' => true,
+                'message' => 'All processes already stopped',
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        // Execute parallel stop requests
+        $start_time = microtime(true);
+        $stop_responses = $this->executeParallelRequests($stop_requests);
+        $elapsed = microtime(true) - $start_time;
+        
+        $log[] = "Parallel stop completed in " . round($elapsed, 2) . "s";
+        
+        // Check results
+        $success_count = 0;
+        $failed_processes = [];
+        
+        foreach ($stop_responses as $index => $response) {
+            $process_name = $stop_requests[$index]['process_name'];
+            
+            if (isset($response['error'])) {
+                $failed_processes[] = "$process_name: " . $response['error'];
+                $log[] = "Failed to stop $process_name: " . $response['error'];
+            } else {
+                $success_count++;
+                $log[] = "Stopped: $process_name";
+            }
+        }
+        
+        if (count($failed_processes) > 0) {
+            return [
+                'success' => false,
+                'message' => "Stopped $success_count/$processes_to_stop processes. Failed: " . implode(', ', $failed_processes),
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'message' => "Successfully stopped $success_count processes in parallel (took " . round($elapsed, 2) . "s)",
+            'log' => implode(' | ', $log),
+            'stopped_count' => $success_count,
+            'elapsed_time' => round($elapsed, 2)
+        ];
+    }
+    
+    /**
+     * Parallel start all processes on a server
+     * Uses curl_multi to start processes in parallel
+     */
+    public function startAllProcessesParallel($server)
+    {
+        $servers = $this->config->item('supervisor_servers');
+        if (!isset($servers[$server])) {
+            return ['error' => 'Invalid server: ' . $server];
+        }
+        
+        $config = $servers[$server];
+        $log = [];
+        $log[] = "Getting all processes...";
+        
+        // First, get all processes
+        $processes_result = $this->_request($server, 'getAllProcessInfo', [], false);
+        
+        if (isset($processes_result['error'])) {
+            $log[] = "Error getting process list: " . $processes_result['error'];
+            return [
+                'success' => false,
+                'message' => 'Failed to get process list',
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        if (!is_array($processes_result)) {
+            $log[] = "Invalid process list format";
+            return [
+                'success' => false,
+                'message' => 'Invalid process list format',
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        $process_count = count($processes_result);
+        $log[] = "Found $process_count processes";
+        
+        // Build parallel start requests
+        $log[] = "Building parallel start requests...";
+        $start_requests = [];
+        
+        foreach ($processes_result as $index => $process) {
+            $process_name = isset($process['name']) ? $process['name'] : '';
+            $process_state = isset($process['statename']) ? $process['statename'] : 'UNKNOWN';
+            
+            // Only start if not already running
+            if ($process_state !== 'RUNNING' && $process_state !== 'STARTING') {
+                $start_requests[] = [
+                    'index' => $index,
+                    'server' => $server,
+                    'method' => 'startProcess',
+                    'request' => [$process_name, true],  // wait=true
+                    'process_name' => $process_name
+                ];
+            }
+        }
+        
+        $processes_to_start = count($start_requests);
+        $log[] = "Starting $processes_to_start processes in parallel...";
+        
+        if ($processes_to_start === 0) {
+            $log[] = "All processes already running";
+            return [
+                'success' => true,
+                'message' => 'All processes already running',
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        // Execute parallel start requests
+        $start_time = microtime(true);
+        $start_responses = $this->executeParallelRequests($start_requests);
+        $elapsed = microtime(true) - $start_time;
+        
+        $log[] = "Parallel start completed in " . round($elapsed, 2) . "s";
+        
+        // Check results
+        $success_count = 0;
+        $failed_processes = [];
+        
+        foreach ($start_responses as $index => $response) {
+            $process_name = $start_requests[$index]['process_name'];
+            
+            if (isset($response['error'])) {
+                $failed_processes[] = "$process_name: " . $response['error'];
+                $log[] = "Failed to start $process_name: " . $response['error'];
+            } else {
+                $success_count++;
+                $log[] = "Started: $process_name";
+            }
+        }
+        
+        if (count($failed_processes) > 0) {
+            return [
+                'success' => false,
+                'message' => "Started $success_count/$processes_to_start processes. Failed: " . implode(', ', $failed_processes),
+                'log' => implode(' | ', $log)
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'message' => "Successfully started $processes_to_start processes in parallel (took " . round($elapsed, 2) . "s)",
+            'log' => implode(' | ', $log),
+            'started_count' => $processes_to_start,
+            'elapsed_time' => round($elapsed, 2)
+        ];
+    }
+    
+    /**
+     * Execute multiple XML-RPC requests in parallel using curl_multi
+     */
+    private function executeParallelRequests($requests)
+    {
+        $servers = $this->config->item('supervisor_servers');
+        $responses = [];
+        $handles = [];
+        $request_map = [];
+        
+        // Create cURL multi handle
+        $mh = curl_multi_init();
+        
+        foreach ($requests as $index => $req) {
+            $server = $req['server'];
+            $method = $req['method'];
+            $request = $req['request'];
+            
+            if (!isset($servers[$server])) {
+                $responses[$index] = ['error' => 'Invalid server: ' . $server];
+                continue;
+            }
+            
+            $config = $servers[$server];
+            $url = $config['url'] . ':' . $config['port'] . '/RPC2';
+            
+            // Build XML-RPC request
+            $xml_request = $this->buildXmlrpcRequest('supervisor.' . $method, $request);
+            
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $xml_request,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,  // Individual timeout for each process
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: text/xml',
+                    'Content-Length: ' . strlen($xml_request),
+                    'User-Agent: SupervisorMonitor/1.0'
+                ],
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false
+            ]);
+            
+            if (isset($config['username']) && isset($config['password'])) {
+                curl_setopt($ch, CURLOPT_USERPWD, $config['username'] . ':' . $config['password']);
+                curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            }
+            
+            $handles[$index] = $ch;
+            $request_map[$index] = $req['process_name'];
+            curl_multi_add_handle($mh, $ch);
+        }
+        
+        // Execute all requests in parallel
+        if (!empty($handles)) {
+            $running = null;
+            do {
+                curl_multi_exec($mh, $running);
+                curl_multi_select($mh);
+            } while ($running > 0);
+            
+            // Collect results
+            foreach ($handles as $index => $ch) {
+                $result = curl_multi_getcontent($ch);
+                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curl_error = curl_error($ch);
+                
+                if ($curl_error) {
+                    $responses[$index] = ['error' => 'cURL Error: ' . $curl_error];
+                } elseif ($http_code !== 200) {
+                    $responses[$index] = ['error' => "HTTP Error: $http_code"];
+                } elseif (empty($result)) {
+                    $responses[$index] = ['error' => 'Empty response'];
+                } else {
+                    $parsed = $this->parseXmlrpcResponse($result);
+                    $responses[$index] = $parsed;
+                }
+                
+                curl_multi_remove_handle($mh, $ch);
+                curl_close($ch);
+            }
+        }
+        
+        curl_multi_close($mh);
+        return $responses;
     }
 
 }

@@ -234,13 +234,13 @@
                                     </div>
                                     <?php if (!$has_error): ?>
                                     <div class="flex items-center gap-2 flex-shrink-0">
-                                        <button onclick="controlAction('startall', '<?php echo $server_name; ?>', '')" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Start All">
+                                        <button onclick="controlAction('startall', '<?php echo $server_name; ?>', '', this)" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Start All">
                                             <i class="fas fa-play text-sm"></i>
                                         </button>
-                                        <button onclick="controlAction('restartall', '<?php echo $server_name; ?>', '')" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Restart All">
+                                        <button onclick="controlAction('restartall', '<?php echo $server_name; ?>', '', this)" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Restart All">
                                             <i class="fas fa-redo text-sm"></i>
                                         </button>
-                                        <button onclick="controlAction('stopall', '<?php echo $server_name; ?>', '')" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Stop All">
+                                        <button onclick="controlAction('stopall', '<?php echo $server_name; ?>', '', this)" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Stop All">
                                             <i class="fas fa-stop text-sm"></i>
                                         </button>
                                     </div>
@@ -313,16 +313,16 @@
                                             <td class="p-3 text-right actions-cell">
                                                 <div class="inline-flex gap-2">
                                                     <?php if ($status == 'RUNNING'): ?>
-                                                        <button onclick="controlAction('stop', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>')" 
+                                                        <button onclick="controlAction('stop', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>', this)" 
                                                            class="text-slate-400 hover:text-red-600 transition" title="Stop">
                                                             <i class="fas fa-stop"></i>
                                                         </button>
-                                                        <button onclick="controlAction('restart', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>')" 
+                                                        <button onclick="controlAction('restart', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>', this)" 
                                                            class="text-slate-400 hover:text-blue-600 transition" title="Restart">
                                                             <i class="fas fa-redo"></i>
                                                         </button>
                                                     <?php elseif (in_array($status, ['STOPPED', 'EXITED', 'FATAL'])): ?>
-                                                        <button onclick="controlAction('start', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>')" 
+                                                        <button onclick="controlAction('start', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>', this)" 
                                                            class="text-slate-400 hover:text-emerald-600 transition" title="Start">
                                                             <i class="fas fa-play"></i>
                                                         </button>
@@ -406,7 +406,45 @@
         }, 3000);
     }
     
-    // Loading overlay
+    // Show loading indicator on specific button with tooltip
+    function showActionLoading(buttonElement, message = 'Processing...') {
+        if (!buttonElement) return;
+        
+        // Store original content and state
+        buttonElement.dataset.originalHtml = buttonElement.innerHTML;
+        buttonElement.dataset.originalDisabled = buttonElement.disabled;
+        buttonElement.dataset.originalTitle = buttonElement.getAttribute('title') || '';
+        
+        // Show loading spinner
+        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        buttonElement.disabled = true;
+        buttonElement.style.opacity = '0.6';
+        buttonElement.setAttribute('title', message);
+        
+        // Add visual feedback to parent row if it's a process action
+        const row = buttonElement.closest('tr');
+        if (row) {
+            row.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'; // Subtle blue highlight
+        }
+    }
+    
+    function hideActionLoading(buttonElement) {
+        if (!buttonElement) return;
+        
+        // Restore original content and state
+        buttonElement.innerHTML = buttonElement.dataset.originalHtml || '<i class="fas fa-play"></i>';
+        buttonElement.disabled = buttonElement.dataset.originalDisabled === 'true';
+        buttonElement.style.opacity = '1';
+        buttonElement.setAttribute('title', buttonElement.dataset.originalTitle || '');
+        
+        // Remove visual feedback from parent row
+        const row = buttonElement.closest('tr');
+        if (row) {
+            row.style.backgroundColor = '';
+        }
+    }
+    
+    // Global loading overlay (for multi-action operations)
     function showLoading(message = 'Processing...') {
         let overlay = document.getElementById('loading-overlay');
         if (!overlay) {
@@ -433,50 +471,89 @@
         }
     }
     
-    // AJAX Control Action
-    function controlAction(action, server, worker) {
+    // AJAX Control Action with improved error handling and timeout
+    function controlAction(action, server, worker, buttonElement) {
         const url = worker 
-            ? `<?php echo site_url(); ?>/control/${action}/${server}/${encodeURIComponent(worker)}?ajax=1`
-            : `<?php echo site_url(); ?>/control/${action}/${server}?ajax=1`;
+            ? `<?php echo site_url(); ?>control/${action}/${server}/${encodeURIComponent(worker)}?ajax=1`
+            : `<?php echo site_url(); ?>control/${action}/${server}?ajax=1`;
         
-        const actionNames = {
-            'start': 'Starting',
-            'stop': 'Stopping',
-            'restart': 'Restarting',
-            'startall': 'Starting all processes',
-            'stopall': 'Stopping all processes',
-            'restartall': 'Restarting all processes'
-        };
+        // Determine action type for timeout and messaging
+        const isRestartAll = action === 'restartall' || action === 'stopall' || action === 'startall';
+        const timeoutMs = isRestartAll ? 150000 : 90000; // 150s for all operations, 90s for individual
+        const actionLabel = action.charAt(0).toUpperCase() + action.slice(1).replace(/([A-Z])/g, ' $1');
         
-        const loadingMsg = actionNames[action] || 'Processing';
-        showLoading(`${loadingMsg}... Please wait.`);
+        // Show loading on button
+        showActionLoading(buttonElement, `${actionLabel} in progress...`);
+        
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         
         fetch(url, {
             method: 'GET',
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            signal: controller.signal
         })
             .then(response => {
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Server returned HTML instead of JSON. Please check server configuration.');
+                clearTimeout(timeoutId);
+                
+                // Check response status
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
+                // Check content type
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    console.warn('Non-JSON response detected:', contentType);
+                    // Try to get text and check if it looks like HTML
+                    return response.text().then(text => {
+                        if (text.trim().startsWith('<') || text.includes('<!DOCTYPE')) {
+                            throw new Error('Server returned HTML instead of JSON. Response: ' + text.substring(0, 200));
+                        }
+                        // Try to parse as JSON anyway
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            throw new Error('Invalid JSON response: ' + text.substring(0, 200));
+                        }
+                    });
+                }
+                
                 return response.json();
             })
             .then(data => {
-                hideLoading();
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    // Refresh data after 2 seconds
+                hideActionLoading(buttonElement);
+                
+                // Verify data is object with success property
+                if (typeof data !== 'object' || data === null) {
+                    throw new Error('Invalid response format');
+                }
+                
+                if (data.success === true || data.success === 'true') {
+                    showNotification(data.message || `${actionLabel} completed successfully`, 'success');
+                    // Refresh data after 2-3 seconds to let changes propagate
                     setTimeout(() => refreshData(), 2000);
+                } else if (data.success === false || data.success === 'false') {
+                    showNotification(data.message || `${actionLabel} failed`, 'error');
                 } else {
-                    showNotification(data.message, 'error');
+                    // Unclear success status, but no error - treat as success
+                    showNotification(data.message || `${actionLabel} completed`, 'success');
+                    setTimeout(() => refreshData(), 2000);
                 }
             })
             .catch(error => {
-                hideLoading();
-                showNotification('Error: ' + error.message, 'error');
+                clearTimeout(timeoutId);
+                hideActionLoading(buttonElement);
+                
+                if (error.name === 'AbortError') {
+                    showNotification(`Operation timeout (${isRestartAll ? '2.5' : '1.5'} minutes). The operation may still be running on the server.`, 'error');
+                } else {
+                    showNotification('Error: ' + error.message, 'error');
+                }
                 console.error('Control action error:', error);
             });
     }
