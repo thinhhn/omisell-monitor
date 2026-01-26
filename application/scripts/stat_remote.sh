@@ -9,10 +9,27 @@ REMOTE_USER="${REMOTE_CELERY_USER:-thinhhn}"
 CODE_DIR="${REMOTE_CELERY_CODE_DIR:-/data/code/omisell-backend}"
 VENV_PYTHON="${REMOTE_CELERY_VENV_PYTHON:-/data/venv/omisell3.11/bin/python}"
 
+# Debug: Print environment
+echo "DEBUG: USER=$(whoami), HOME=$HOME, IP=$REMOTE_IP, USER=$REMOTE_USER" >&2
+
 # Kiểm tra các biến bắt buộc
 if [ -z "$REMOTE_IP" ] || [ -z "$REMOTE_USER" ] || [ -z "$CODE_DIR" ] || [ -z "$VENV_PYTHON" ]; then
     echo "{\"error\": \"Missing required environment variables\"}" >&2
     exit 1
+fi
+
+# Debug: Check SSH key availability
+if [ -f ~/.ssh/id_rsa ]; then
+    echo "DEBUG: SSH key found at ~/.ssh/id_rsa" >&2
+else
+    echo "DEBUG: SSH key NOT found at ~/.ssh/id_rsa" >&2
+fi
+
+# Debug: Check SSH config
+if [ -f ~/.ssh/config ]; then
+    echo "DEBUG: SSH config found" >&2
+else
+    echo "DEBUG: SSH config NOT found" >&2
 fi
 
 ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_PYTHON -c \"
