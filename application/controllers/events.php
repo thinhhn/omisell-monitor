@@ -70,6 +70,18 @@ class Events extends MY_Controller
         
         $output_string = implode("\n", $output);
         
+        // Log for debugging
+        $log_data = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'command' => $command,
+            'return_code' => $return_var,
+            'output_lines' => count($output),
+            'output_length' => strlen($output_string),
+            'first_line' => $output[0] ?? 'NO OUTPUT',
+            'last_line' => end($output) ?: 'NO OUTPUT'
+        ];
+        file_put_contents(APPPATH . 'logs/get_stats_debug.log', json_encode($log_data) . "\n", FILE_APPEND);
+        
         // Extract JSON from output (remove any non-JSON text before/after)
         preg_match('/\{[\s\S]*\}/', $output_string, $matches);
         $json_string = isset($matches[0]) ? $matches[0] : $output_string;
@@ -88,8 +100,11 @@ class Events extends MY_Controller
             echo json_encode([
                 'success' => false,
                 'error' => 'Failed to parse stats or script not found',
+                'command_run' => $command,
+                'return_code' => $return_var,
                 'raw_output' => substr($output_string, 0, 500),
-                'return_code' => $return_var
+                'first_line' => $output[0] ?? 'NO OUTPUT',
+                'debug_log' => APPPATH . 'logs/get_stats_debug.log'
             ]);
             exit;
         }
