@@ -232,11 +232,13 @@
         const toggleBtn = document.getElementById('mobile-menu-toggle');
         const sidebar = document.querySelector('.sidebar-fixed');
         const menuIcon = document.getElementById('menu-icon');
+        const overlay = document.getElementById('mobile-overlay');
         
         if (toggleBtn && sidebar) {
             toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 sidebar.classList.toggle('mobile-menu-open');
+                if (overlay) overlay.classList.toggle('active');
                 
                 // Toggle icon
                 if (sidebar.classList.contains('mobile-menu-open')) {
@@ -248,16 +250,15 @@
                 }
             });
             
-            // Close menu when clicking outside
-            document.addEventListener('click', function(event) {
-                if (window.innerWidth <= 1024) {
-                    if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target) && sidebar.classList.contains('mobile-menu-open')) {
-                        sidebar.classList.remove('mobile-menu-open');
-                        menuIcon.classList.remove('fa-times');
-                        menuIcon.classList.add('fa-bars');
-                    }
-                }
-            });
+            // Close menu when clicking overlay
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('mobile-menu-open');
+                    overlay.classList.remove('active');
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                });
+            }
         }
         
         // Load stats

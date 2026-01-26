@@ -173,6 +173,69 @@ class Welcome extends MY_Controller
     }
     
     /**
+     * AJAX endpoint to get all server data as JSON
+     */
+    public function getData()
+    {
+        header('Content-Type: application/json');
+        
+        $this->load->helper('date');
+        $servers = $this->config->item('supervisor_servers');
+        
+        $data = [];
+        $data['servers'] = [];
+        
+        // Load data from all servers simultaneously
+        $parallel_requests = [];
+        $index = 0;
+        
+        foreach ($servers as $name => $config) {
+            $parallel_requests['list_' . $index] = [
+                'server' => $name,
+                'method' => 'getAllProcessInfo',
+                'request' => []
+            ];
+            $parallel_requests['version_' . $index] = [
+                'server' => $name,
+                'method' => 'getSupervisorVersion',
+                'request' => []
+            ];
+            $parallel_requests['stats_' . $index] = [
+                'server' => $name,
+                'method' => 'getSystemStats',
+                'request' => []
+            ];
+            $index++;
+        }
+        
+        // Execute all requests in parallel
+        $responses = $this->_parallel_requests_no_cache($parallel_requests);
+        
+        // Process parallel responses
+        $index = 0;
+        foreach ($servers as $name => $config) {
+            $server_data = [];
+            $server_data['name'] = $name;
+            $server_data['config'] = $config;
+            $server_data['processes'] = isset($responses['list_' . $index]) 
+                ? $responses['list_' . $index] 
+                : ['error' => 'Failed to get process info'];
+            $server_data['version'] = isset($responses['version_' . $index]) 
+                ? $responses['version_' . $index] 
+                : ['error' => 'Failed to get version'];
+            $server_data['stats'] = $this->_getServerStats($name, $config);
+            
+            $data['servers'][$name] = $server_data;
+            $index++;
+        }
+        
+        $data['success'] = true;
+        $data['timestamp'] = time();
+        
+        echo json_encode($data);
+    }
+    
+    /**
      * AJAX endpoint for real-time updates
      */
     public function ajaxUpdate()

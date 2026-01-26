@@ -11,6 +11,7 @@ if (! defined('BASEPATH')) {
 class Control extends MY_Controller
 {
     public $security_helper;
+    private $is_ajax = false;
     
     public function __construct()
     {
@@ -23,10 +24,38 @@ class Control extends MY_Controller
         // Load security helper library
         $this->load->library('Security_helper');
         
+        // Detect AJAX request
+        $this->is_ajax = $this->input->is_ajax_request() || 
+                         $this->input->get('ajax') == '1' ||
+                         $this->input->post('ajax') == '1';
+        
         // Prevent caching for control actions (important for Cloudflare/CDN)
         header('Cache-Control: no-cache, no-store, must-revalidate');
         header('Pragma: no-cache');
         header('Expires: 0');
+    }
+    
+    /**
+     * Helper to return response (JSON for AJAX, redirect for normal)
+     */
+    private function _respond($success, $message, $data = [])
+    {
+        if ($this->is_ajax) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => $success,
+                'message' => $message,
+                'data' => $data
+            ]);
+            exit; // IMPORTANT: Stop execution to prevent HTML output
+        } else {
+            if ($success) {
+                $this->session->set_flashdata('success', $message);
+            } else {
+                $this->session->set_flashdata('error', $message);
+            }
+            redirect('');
+        }
     }
 
     /**
@@ -39,14 +68,12 @@ class Control extends MY_Controller
         $worker_validation = $this->security_helper->validate_process_name($worker);
         
         if (!$server_validation['valid']) {
-            $this->session->set_flashdata('error', 'Security: ' . $server_validation['error']);
-            redirect('');
+            $this->_respond(false, 'Security: ' . $server_validation['error']);
             return;
         }
         
         if (!$worker_validation['valid']) {
-            $this->session->set_flashdata('error', 'Security: ' . $worker_validation['error']);
-            redirect('');
+            $this->_respond(false, 'Security: ' . $worker_validation['error']);
             return;
         }
         
@@ -58,12 +85,10 @@ class Control extends MY_Controller
         $result = $this->_request($server, 'startProcess', [$worker, true], false);
         
         if (isset($result['error'])) {
-            $this->session->set_flashdata('error', "Failed to start $worker on $server: " . $result['error']);
+            $this->_respond(false, "Failed to start $worker on $server: " . $result['error']);
         } else {
-            $this->session->set_flashdata('success', "Process $worker started successfully on $server");
+            $this->_respond(true, "Process $worker started successfully on $server");
         }
-        
-        redirect('');
     }
 
     /**
@@ -74,12 +99,10 @@ class Control extends MY_Controller
         $result = $this->_request($server, 'startAllProcesses', [true], false);
         
         if (isset($result['error'])) {
-            $this->session->set_flashdata('error', "Failed to start all processes on $server: " . $result['error']);
+            $this->_respond(false, "Failed to start all processes on $server: " . $result['error']);
         } else {
-            $this->session->set_flashdata('success', "All processes started successfully on server $server");
+            $this->_respond(true, "All processes started successfully on server $server");
         }
-        
-        redirect('');
     }
 
     /**
@@ -92,14 +115,12 @@ class Control extends MY_Controller
         $worker_validation = $this->security_helper->validate_process_name($worker);
         
         if (!$server_validation['valid']) {
-            $this->session->set_flashdata('error', 'Security: ' . $server_validation['error']);
-            redirect('');
+            $this->_respond(false, 'Security: ' . $server_validation['error']);
             return;
         }
         
         if (!$worker_validation['valid']) {
-            $this->session->set_flashdata('error', 'Security: ' . $worker_validation['error']);
-            redirect('');
+            $this->_respond(false, 'Security: ' . $worker_validation['error']);
             return;
         }
         
@@ -111,12 +132,10 @@ class Control extends MY_Controller
         $result = $this->_request($server, 'stopProcess', [$worker, true], false);
         
         if (isset($result['error'])) {
-            $this->session->set_flashdata('error', "Failed to stop $worker on $server: " . $result['error']);
+            $this->_respond(false, "Failed to stop $worker on $server: " . $result['error']);
         } else {
-            $this->session->set_flashdata('success', "Process $worker stopped successfully on $server");
+            $this->_respond(true, "Process $worker stopped successfully on $server");
         }
-        
-        redirect('');
     }
 
     /**
@@ -127,12 +146,10 @@ class Control extends MY_Controller
         $result = $this->_request($server, 'stopAllProcesses', [true], false);
         
         if (isset($result['error'])) {
-            $this->session->set_flashdata('error', "Failed to stop all processes on $server: " . $result['error']);
+            $this->_respond(false, "Failed to stop all processes on $server: " . $result['error']);
         } else {
-            $this->session->set_flashdata('success', "All processes stopped successfully on server $server");
+            $this->_respond(true, "All processes stopped successfully on server $server");
         }
-        
-        redirect('');
     }
 
     /**
@@ -145,14 +162,12 @@ class Control extends MY_Controller
         $worker_validation = $this->security_helper->validate_process_name($worker);
         
         if (!$server_validation['valid']) {
-            $this->session->set_flashdata('error', 'Security: ' . $server_validation['error']);
-            redirect('');
+            $this->_respond(false, 'Security: ' . $server_validation['error']);
             return;
         }
         
         if (!$worker_validation['valid']) {
-            $this->session->set_flashdata('error', 'Security: ' . $worker_validation['error']);
-            redirect('');
+            $this->_respond(false, 'Security: ' . $worker_validation['error']);
             return;
         }
         
@@ -174,8 +189,7 @@ class Control extends MY_Controller
         
         if (isset($stop_result['error'])) {
             $log[] = "Stop failed: " . $stop_result['error'];
-            $this->session->set_flashdata('error', "Failed to stop $worker for restart: " . $stop_result['error'] . " | Log: " . implode(' | ', $log));
-            redirect('');
+            $this->_respond(false, "Failed to stop $worker for restart: " . $stop_result['error'] . " | Log: " . implode(' | ', $log));
             return;
         }
         $log[] = "Stop command sent successfully";
@@ -198,7 +212,9 @@ class Control extends MY_Controller
         
         if (!$stop_verified) {
             $log[] = "WARNING: Process did not stop in time (30s timeout)";
-            $this->session->set_flashdata('warning', "Process $worker may not have stopped completely before restart attempt");
+            if (!$this->is_ajax) {
+                $this->session->set_flashdata('warning', "Process $worker may not have stopped completely before restart attempt");
+            }
         }
         
         // Wait a bit longer to ensure clean shutdown
@@ -211,8 +227,7 @@ class Control extends MY_Controller
         
         if (isset($start_result['error'])) {
             $log[] = "Start failed: " . $start_result['error'];
-            $this->session->set_flashdata('error', "Failed to start $worker after stop. Process is now STOPPED. Error: " . $start_result['error'] . " | Log: " . implode(' | ', $log));
-            redirect('');
+            $this->_respond(false, "Failed to start $worker after stop. Process is now STOPPED. Error: " . $start_result['error'] . " | Log: " . implode(' | ', $log));
             return;
         }
         $log[] = "Start command sent successfully";
@@ -249,43 +264,68 @@ class Control extends MY_Controller
         
         // Final result with detailed logging
         if ($start_verified) {
-            $this->session->set_flashdata('success', "Process $worker successfully restarted on $server (was: $initial_state → now: $final_state)");
+            $this->_respond(true, "Process $worker successfully restarted on $server (was: $initial_state → now: $final_state)");
         } else {
             $error_msg = "Restart failed: Process $worker stopped but did not start properly (final state: $final_state)";
             $error_msg .= " | Debug log: " . implode(' | ', $log);
-            $this->session->set_flashdata('error', $error_msg);
+            $this->_respond(false, $error_msg);
         }
-        
-        redirect('');
     }
 
     /**
-     * Restart all processes on a server
+     * Restart all processes on a server with retry logic
      */
     public function restartall($server)
     {
+        // Increase time limit for long operations
+        set_time_limit(120);
+        
         // Stop all processes first
         $stop_result = $this->_request($server, 'stopAllProcesses', [true], false);
         
         if (isset($stop_result['error'])) {
-            $this->session->set_flashdata('error', "Failed to stop processes for restart on $server: " . $stop_result['error']);
-            redirect('');
+            $this->_respond(false, "Failed to stop processes for restart on $server: " . $stop_result['error']);
             return;
         }
         
         // Wait for clean shutdown
-        sleep(5);
+        sleep(10);
         
-        // Start all processes
-        $start_result = $this->_request($server, 'startAllProcesses', [true], false);
+        // Try to start all processes with retry (max 2 attempts)
+        $max_retries = 2;
+        $start_result = null;
         
-        if (isset($start_result['error'])) {
-            $this->session->set_flashdata('error', "Failed to start processes after restart on $server: " . $start_result['error']);
-        } else {
-            $this->session->set_flashdata('success', "All processes restarted successfully on server $server");
+        for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
+            $start_result = $this->_request($server, 'startAllProcesses', [true], false);
+            
+            if (!isset($start_result['error'])) {
+                // Success
+                $this->security_helper->log_security_event('RESTARTALL_SUCCESS', [
+                    'server' => $server,
+                    'attempts' => $attempt
+                ]);
+                $this->_respond(true, "All processes restarted successfully on server $server (attempt $attempt)");
+                return;
+            }
+            
+            // If this is not the last attempt, wait and retry
+            if ($attempt < $max_retries) {
+                sleep(5);
+                $this->security_helper->log_security_event('RESTARTALL_RETRY', [
+                    'server' => $server,
+                    'attempt' => $attempt,
+                    'error' => $start_result['error']
+                ]);
+            }
         }
         
-        redirect('');
+        // All retries failed
+        $this->security_helper->log_security_event('RESTARTALL_FAILED', [
+            'server' => $server,
+            'attempts' => $max_retries,
+            'error' => $start_result['error']
+        ]);
+        $this->_respond(false, "Failed to start processes after restart on $server after $max_retries attempts: " . $start_result['error']);
     }
 
     /**
@@ -296,12 +336,10 @@ class Control extends MY_Controller
         $result = $this->_request($server, 'clearProcessLogs', [$worker], false);
         
         if (isset($result['error'])) {
-            $this->session->set_flashdata('error', "Failed to clear logs for $worker: " . $result['error']);
+            $this->_respond(false, "Failed to clear logs for $worker: " . $result['error']);
         } else {
-            $this->session->set_flashdata('success', "Logs cleared for process $worker on $server");
+            $this->_respond(true, "Logs cleared for process $worker on $server");
         }
-        
-        redirect('');
     }
     
     /**

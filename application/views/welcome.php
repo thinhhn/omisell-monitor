@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supervisord Dashboard</title>
+    <title>Supervisord</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -60,7 +60,7 @@
     ];
     ?>
 
-    <div class="min-h-screen flex flex-col lg:flex-row">
+    <div class="min-h-screen flex flex-col">
         
         <?php 
         $active_menu = 'dashboard';
@@ -73,14 +73,14 @@
             <!-- Header -->
             <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
                 <div>
-                    <h2 class="text-3xl font-bold text-slate-900">Supervisord Dashboard</h2>
+                    <h2 class="text-3xl font-bold text-slate-900">Supervisord</h2>
                     <p class="text-slate-500 text-sm mt-1">
                         <i class="fas fa-sync-alt mr-1"></i>Auto-refresh in <span id="countdown-header" class="font-mono font-bold text-blue-600"><?php echo $this->config->item('refresh'); ?></span> seconds
                     </p>
                 </div>
                 <div class="flex gap-3 flex-wrap">
-                    <button onclick="location.reload();" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition shadow-sm">
-                        <i class="fas fa-sync-alt mr-2 text-slate-400"></i> Refresh
+                    <button onclick="refreshData();" id="refresh-btn" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition shadow-sm">
+                        <i class="fas fa-sync-alt mr-2 text-slate-400" id="refresh-icon"></i> Refresh
                     </button>
                     <a href="?mute=<?php echo ($muted?-1:1);?>" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition shadow-sm">
                         <i class="fas fa-<?php echo $muted ? 'volume-mute' : 'volume-up'; ?> mr-2"></i> <?php echo $muted ? 'Unmute' : 'Mute'; ?>
@@ -145,14 +145,22 @@
 
             <!-- Server Groups -->
             <?php foreach ($server_groups as $group_name => $group_config): ?>
+            <?php 
+                $safe_group_name = preg_replace('/[^a-zA-Z0-9]/', '_', $group_name);
+            ?>
             <section class="mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold text-slate-800 flex items-center gap-3">
+                <div class="flex items-center justify-between mb-4 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition" onclick="toggleGroup('group-<?php echo $safe_group_name; ?>')">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center gap-3 flex-1">
                         <span class="w-1 h-8 bg-<?php echo $group_config['color']; ?>-500 rounded-full"></span>
                         <i class="fas <?php echo $group_config['icon']; ?> text-<?php echo $group_config['color']; ?>-500"></i>
                         <?php echo $group_name; ?>
                     </h3>
+                    <button class="toggle-icon-<?php echo $safe_group_name; ?> px-3 py-1 bg-<?php echo $group_config['color']; ?>-500 text-white rounded-lg">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
                 </div>
+                
+                <div id="group-<?php echo $safe_group_name; ?>" class="group-content">
                 
                 <?php foreach ($group_config['servers'] as $type_name => $server_names): ?>
                 <div class="mb-6">
@@ -161,7 +169,7 @@
                         <?php echo ucfirst($type_name); ?> Servers
                     </h4>
                     
-                    <div class="grid grid-cols-1 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <?php foreach ($server_names as $server_name): 
                             if (!isset($servers[$server_name])) continue;
                             $server_config = $servers[$server_name];
@@ -174,47 +182,26 @@
                             <div class="bg-gradient-to-r from-<?php echo $group_config['color']; ?>-500 to-<?php echo $group_config['color']; ?>-600 p-4 text-white">
                                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                                     <div class="flex items-center gap-3 flex-1 min-w-0">
-                                        <i class="fas fa-server text-2xl opacity-80 flex-shrink-0"></i>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-3 flex-wrap">
-                                                <h5 class="font-bold text-lg"><?php echo $server_name; ?></h5>
+                                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-server text-2xl opacity-80"></i>
+                                    <h5 class="font-bold text-lg"><?php echo $server_name; ?></h5>
+                                </div>
                                                 <?php if (!$has_error): 
                                                     $server_procs = is_array($procs) ? $procs : [];
                                                     $server_total = count($server_procs);
                                                     $server_running = 0;
-                                                    $server_stopped = 0;
-                                                    $server_fatal = 0;
                                                     foreach ($server_procs as $p) {
-                                                        if (is_array($p) && isset($p['statename'])) {
-                                                            if ($p['statename'] === 'RUNNING') {
-                                                                $server_running++;
-                                                            } elseif (in_array($p['statename'], ['STOPPED', 'EXITED'])) {
-                                                                $server_stopped++;
-                                                            } elseif ($p['statename'] === 'FATAL') {
-                                                                $server_fatal++;
-                                                            }
+                                                        if (is_array($p) && isset($p['statename']) && $p['statename'] === 'RUNNING') {
+                                                            $server_running++;
                                                         }
                                                     }
                                                 ?>
-                                                <!-- Process Summary Stats -->
-                                                <div class="flex items-center gap-2 text-xs">
-                                                    <span class="px-2 py-1 bg-emerald-500 bg-opacity-30 rounded-md font-bold border border-emerald-400 border-opacity-30">
-                                                        <i class="fas fa-check-circle mr-1"></i><?php echo $server_running; ?> Running
-                                                    </span>
-                                                    <?php if ($server_stopped > 0): ?>
-                                                    <span class="px-2 py-1 bg-slate-500 bg-opacity-30 rounded-md font-bold border border-slate-400 border-opacity-30">
-                                                        <i class="fas fa-stop-circle mr-1"></i><?php echo $server_stopped; ?> Stopped
-                                                    </span>
-                                                    <?php endif; ?>
-                                                    <?php if ($server_fatal > 0): ?>
-                                                    <span class="px-2 py-1 bg-red-500 bg-opacity-30 rounded-md font-bold border border-red-400 border-opacity-30">
-                                                        <i class="fas fa-exclamation-circle mr-1"></i><?php echo $server_fatal; ?> Fatal
-                                                    </span>
-                                                    <?php endif; ?>
-                                                    <span class="px-2 py-1 bg-white bg-opacity-20 rounded-md font-bold">
-                                                        Total: <?php echo $server_total; ?>
-                                                    </span>
-                                                </div>
+                                                <!-- Process Summary: X/Y Running -->
+                                                <span id="server-<?php echo $server_name; ?>-summary" class="px-3 py-1 bg-white bg-opacity-20 rounded-full text-sm font-bold">
+                                                    <?php echo $server_running; ?>/<?php echo $server_total; ?> Running
+                                                </span>
                                                 <?php endif; ?>
                                             </div>
                                             <div class="flex items-center gap-3 text-xs opacity-90 mt-2 flex-wrap">
@@ -235,11 +222,11 @@
                                                 ?>
                                                 <span class="flex items-center gap-1">
                                                     <i class="fas fa-microchip mr-1"></i>
-                                                    <span class="font-mono text-<?php echo $cpu_color; ?>-300"><?php echo round($cpu_percent, 1); ?>%</span>
+                                                    <span id="server-<?php echo $server_name; ?>-cpu" class="font-mono text-<?php echo $cpu_color; ?>-300"><?php echo round($cpu_percent, 1); ?>%</span>
                                                 </span>
                                                 <span class="flex items-center gap-1">
                                                     <i class="fas fa-memory mr-1"></i>
-                                                    <span class="font-mono text-<?php echo $mem_color; ?>-300"><?php echo round($mem_percent, 1); ?>%</span>
+                                                    <span id="server-<?php echo $server_name; ?>-mem" class="font-mono text-<?php echo $mem_color; ?>-300"><?php echo round($mem_percent, 1); ?>%</span>
                                                 </span>
                                                 <?php endif; ?>
                                             </div>
@@ -247,15 +234,15 @@
                                     </div>
                                     <?php if (!$has_error): ?>
                                     <div class="flex items-center gap-2 flex-shrink-0">
-                                        <a href="/control/startall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Start All">
+                                        <button onclick="controlAction('startall', '<?php echo $server_name; ?>', '')" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Start All">
                                             <i class="fas fa-play text-sm"></i>
-                                        </a>
-                                        <a href="/control/restartall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Restart All">
+                                        </button>
+                                        <button onclick="controlAction('restartall', '<?php echo $server_name; ?>', '')" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Restart All">
                                             <i class="fas fa-redo text-sm"></i>
-                                        </a>
-                                        <a href="/control/stopall/<?php echo $server_name; ?>" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Stop All">
+                                        </button>
+                                        <button onclick="controlAction('stopall', '<?php echo $server_name; ?>', '')" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Stop All">
                                             <i class="fas fa-stop text-sm"></i>
-                                        </a>
+                                        </button>
                                     </div>
                                     <?php endif; ?>
                                 </div>
@@ -278,7 +265,7 @@
                                         <tr>
                                             <th class="p-3">Process</th>
                                             <th class="p-3 text-right" width="180">Status</th>
-                                            <th class="p-3 text-right" width="100">Actions</th>
+                                            <th class="p-3 text-right" width="80">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
@@ -297,48 +284,48 @@
                                                 
                                                 if ($status == 'RUNNING' && $description) {
                                                     $desc_parts = explode(',', $description);
-                                                    $pid = isset($desc_parts[0]) ? trim($desc_parts[0]) : '';
+                                                    $pid = isset($desc_parts[0]) ? str_replace('pid ', '', trim($desc_parts[0])) : '';
                                                     $uptime = isset($desc_parts[1]) ? str_replace('uptime ', '', trim($desc_parts[1])) : '';
                                                 }
                                                 
                                                 $status_lower = strtolower($status);
                                                 $status_class = "status-$status_lower";
                                         ?>
-                                        <tr class="hover:bg-slate-50">
+                                        <?php
+                                            $row_id = 'process-' . $server_name . '-' . preg_replace('/[^a-zA-Z0-9]/', '_', $item_name);
+                                        ?>
+                                        <tr class="hover:bg-slate-50" id="<?php echo $row_id; ?>">
                                             <td class="p-3">
                                                 <div class="font-medium text-slate-700"><?php echo htmlspecialchars($item_name); ?></div>
-                                                <?php if ($pid): ?>
-                                                <div class="text-xs text-slate-400 font-mono mt-1"><?php echo $pid; ?></div>
+                                                <?php if ($uptime): ?>
+                                                <div class="text-xs text-slate-400 mt-2 uptime-cell">
+                                                    <i class="fas fa-clock mr-1"></i><?php echo $uptime; ?>
+                                                </div>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="p-3 text-right">
                                                 <div class="inline-block text-left">
-                                                    <span class="<?php echo $status_class; ?> px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
+                                                    <span class="status-cell <?php echo $status_class; ?> px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm">
                                                         <?php echo $status; ?>
                                                     </span>
-                                                    <?php if ($uptime): ?>
-                                                    <div class="text-xs text-slate-400 mt-2">
-                                                        <i class="fas fa-clock mr-1"></i><?php echo $uptime; ?>
-                                                    </div>
-                                                    <?php endif; ?>
                                                 </div>
                                             </td>
-                                            <td class="p-3 text-right">
+                                            <td class="p-3 text-right actions-cell">
                                                 <div class="inline-flex gap-2">
                                                     <?php if ($status == 'RUNNING'): ?>
-                                                        <a href="/control/stop/<?php echo $server_name . '/' . urlencode($item_name); ?>" 
+                                                        <button onclick="controlAction('stop', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>')" 
                                                            class="text-slate-400 hover:text-red-600 transition" title="Stop">
                                                             <i class="fas fa-stop"></i>
-                                                        </a>
-                                                        <a href="/control/restart/<?php echo $server_name . '/' . urlencode($item_name); ?>" 
+                                                        </button>
+                                                        <button onclick="controlAction('restart', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>')" 
                                                            class="text-slate-400 hover:text-blue-600 transition" title="Restart">
                                                             <i class="fas fa-redo"></i>
-                                                        </a>
+                                                        </button>
                                                     <?php elseif (in_array($status, ['STOPPED', 'EXITED', 'FATAL'])): ?>
-                                                        <a href="/control/start/<?php echo $server_name . '/' . urlencode($item_name); ?>" 
+                                                        <button onclick="controlAction('start', '<?php echo $server_name; ?>', '<?php echo addslashes($item_name); ?>')" 
                                                            class="text-slate-400 hover:text-emerald-600 transition" title="Start">
                                                             <i class="fas fa-play"></i>
-                                                        </a>
+                                                        </button>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -364,6 +351,7 @@
                     </div>
                 </div>
                 <?php endforeach; ?>
+                </div>
             </section>
             <?php endforeach; ?>
 
@@ -376,11 +364,13 @@
         const toggleBtn = document.getElementById('mobile-menu-toggle');
         const sidebar = document.querySelector('.sidebar-fixed');
         const menuIcon = document.getElementById('menu-icon');
+        const overlay = document.getElementById('mobile-overlay');
         
         if (toggleBtn && sidebar) {
             toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 sidebar.classList.toggle('mobile-menu-open');
+                if (overlay) overlay.classList.toggle('active');
                 
                 // Toggle icon
                 if (sidebar.classList.contains('mobile-menu-open')) {
@@ -392,20 +382,289 @@
                 }
             });
             
-            // Close menu when clicking outside
-            document.addEventListener('click', function(event) {
-                if (window.innerWidth <= 1024) {
-                    if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target) && sidebar.classList.contains('mobile-menu-open')) {
-                        sidebar.classList.remove('mobile-menu-open');
-                        menuIcon.classList.remove('fa-times');
-                        menuIcon.classList.add('fa-bars');
-                    }
-                }
-            });
+            // Close menu when clicking overlay
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('mobile-menu-open');
+                    overlay.classList.remove('active');
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                });
+            }
         }
     });
     
-    // Auto-refresh countdown
+    // Toast notification
+    function showNotification(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-20 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>${message}`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+    
+    // Loading overlay
+    function showLoading(message = 'Processing...') {
+        let overlay = document.getElementById('loading-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'loading-overlay';
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+            overlay.innerHTML = `
+                <div class="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center gap-4">
+                    <div class="loading-spinner"></div>
+                    <p class="text-slate-700 font-medium" id="loading-message">${message}</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        } else {
+            document.getElementById('loading-message').textContent = message;
+            overlay.classList.remove('hidden');
+        }
+    }
+    
+    function hideLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+    }
+    
+    // AJAX Control Action
+    function controlAction(action, server, worker) {
+        const url = worker 
+            ? `/control/${action}/${server}/${encodeURIComponent(worker)}?ajax=1`
+            : `/control/${action}/${server}?ajax=1`;
+        
+        const actionNames = {
+            'start': 'Starting',
+            'stop': 'Stopping',
+            'restart': 'Restarting',
+            'startall': 'Starting all processes',
+            'stopall': 'Stopping all processes',
+            'restartall': 'Restarting all processes'
+        };
+        
+        const loadingMsg = actionNames[action] || 'Processing';
+        showLoading(`${loadingMsg}... Please wait.`);
+        
+        fetch(url)
+            .then(response => {
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned HTML instead of JSON. Please check server configuration.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Refresh data after 2 seconds
+                    setTimeout(() => refreshData(), 2000);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showNotification('Error: ' + error.message, 'error');
+                console.error('Control action error:', error);
+            });
+    }
+    
+    // AJAX Refresh Data - Update DOM without page reload
+    function refreshData() {
+        const refreshIcon = document.getElementById('refresh-icon');
+        const refreshBtn = document.getElementById('refresh-btn');
+        
+        if (refreshIcon) {
+            refreshIcon.classList.add('fa-spin');
+        }
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+        }
+        
+        fetch('<?php echo site_url("welcome/getData"); ?>')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.servers) {
+                    updateServerData(data.servers);
+                    console.log('Data refreshed successfully');
+                } else {
+                    showNotification('Failed to refresh data', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Refresh error:', error);
+                showNotification('Error: ' + error.message, 'error');
+            })
+            .finally(() => {
+                if (refreshIcon) {
+                    refreshIcon.classList.remove('fa-spin');
+                }
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                }
+            });
+    }
+    
+    // Update server data in DOM
+    function updateServerData(servers) {
+        Object.keys(servers).forEach(serverName => {
+            const serverData = servers[serverName];
+            const processes = serverData.processes;
+            
+            if (!Array.isArray(processes)) {
+                console.warn('Invalid process data for server:', serverName);
+                return;
+            }
+            
+            // Update each process status
+            processes.forEach(proc => {
+                const processName = proc.name || proc.group + ':' + proc.name;
+                const rowId = 'process-' + serverName + '-' + processName.replace(/[^a-zA-Z0-9]/g, '_');
+                const row = document.getElementById(rowId);
+                
+                if (row) {
+                    // Update status badge
+                    const statusCell = row.querySelector('.status-cell');
+                    if (statusCell) {
+                        const status = proc.statename || 'UNKNOWN';
+                        const statusClass = getStatusClass(status);
+                        statusCell.className = `status-cell px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-sm ${statusClass}`;
+                        statusCell.textContent = status;
+                    }
+                    
+                    // Update action buttons based on status
+                    const actionsCell = row.querySelector('.actions-cell');
+                    if (actionsCell) {
+                        const status = proc.statename || 'UNKNOWN';
+                        actionsCell.innerHTML = getActionButtons(serverName, processName, status);
+                    }
+                    
+                    // Update uptime - extract only uptime, remove PID
+                    const uptimeCell = row.querySelector('.uptime-cell');
+                    if (uptimeCell) {
+                        if (proc.description) {
+                            // Extract uptime from description
+                            // Description format: "pid 12345, uptime 2 days, 5:30:45"
+                            let uptime = proc.description;
+                            // Remove "pid XXXX," part
+                            uptime = uptime.replace(/pid\s+\d+,\s*/i, '');
+                            // Remove "uptime " prefix if present
+                            uptime = uptime.replace(/uptime\s+/i, '');
+                            // Trim whitespace
+                            uptime = uptime.trim();
+                            
+                            uptimeCell.innerHTML = `<i class="fas fa-clock mr-1"></i>${uptime}`;
+                            uptimeCell.style.display = 'block';
+                        } else {
+                            uptimeCell.style.display = 'none';
+                        }
+                    }
+                }
+            });
+            
+            // Update server summary (X/Y Running)
+            const summaryEl = document.querySelector(`#server-${serverName}-summary`);
+            if (summaryEl) {
+                const total = processes.length;
+                const running = processes.filter(p => p.statename === 'RUNNING').length;
+                summaryEl.textContent = `${running}/${total} Running`;
+            }
+            
+            // Update CPU/Memory stats if available
+            const stats = serverData.stats;
+            if (stats && stats.available) {
+                const cpuEl = document.querySelector(`#server-${serverName}-cpu`);
+                const memEl = document.querySelector(`#server-${serverName}-mem`);
+                
+                if (cpuEl && stats.cpu_percent !== undefined) {
+                    cpuEl.textContent = Math.round(stats.cpu_percent * 10) / 10 + '%';
+                }
+                if (memEl && stats.memory_percent !== undefined) {
+                    memEl.textContent = Math.round(stats.memory_percent * 10) / 10 + '%';
+                }
+            }
+        });
+    }
+    
+    // Get status class for badge styling
+    function getStatusClass(status) {
+        const statusClasses = {
+            'RUNNING': 'status-running',
+            'STOPPED': 'status-stopped',
+            'STARTING': 'status-starting',
+            'BACKOFF': 'status-backoff',
+            'FATAL': 'status-fatal',
+            'EXITED': 'status-exited'
+        };
+        return statusClasses[status] || 'bg-gray-500';
+    }
+    
+    // Generate action buttons HTML
+    function getActionButtons(server, process, status) {
+        if (status === 'RUNNING') {
+            return `
+                <button onclick="controlAction('stop', '${server}', '${process.replace(/'/g, "\\'")}')" 
+                   class="text-slate-400 hover:text-red-600 transition" title="Stop">
+                    <i class="fas fa-stop"></i>
+                </button>
+                <button onclick="controlAction('restart', '${server}', '${process.replace(/'/g, "\\'")}')" 
+                   class="text-slate-400 hover:text-blue-600 transition" title="Restart">
+                    <i class="fas fa-redo"></i>
+                </button>
+            `;
+        } else if (['STOPPED', 'EXITED', 'FATAL'].includes(status)) {
+            return `
+                <button onclick="controlAction('start', '${server}', '${process.replace(/'/g, "\\'")}')" 
+                   class="text-slate-400 hover:text-emerald-600 transition" title="Start">
+                    <i class="fas fa-play"></i>
+                </button>
+            `;
+        }
+        return '';
+    }
+    
+    // Toggle group expand/collapse
+    function toggleGroup(groupId) {
+        const groupContent = document.getElementById(groupId);
+        const safeName = groupId.replace('group-', '');
+        const toggleIcon = document.querySelector(`.toggle-icon-${safeName} i`);
+        
+        if (groupContent) {
+            groupContent.classList.toggle('hidden');
+            if (toggleIcon) {
+                toggleIcon.classList.toggle('fa-chevron-up');
+                toggleIcon.classList.toggle('fa-chevron-down');
+            }
+            
+            // Save state to localStorage
+            localStorage.setItem(`group-${groupId}`, groupContent.classList.contains('hidden') ? 'closed' : 'open');
+        }
+    }
+    
+    // Restore expand/collapse state from localStorage
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[id^="group-"]').forEach(el => {
+            const state = localStorage.getItem('group-' + el.id);
+            if (state === 'closed') {
+                el.classList.add('hidden');
+                const safeName = el.id.replace('group-', '');
+                const toggleIcon = document.querySelector(`.toggle-icon-${safeName} i`);
+                if (toggleIcon) {
+                    toggleIcon.classList.remove('fa-chevron-up');
+                    toggleIcon.classList.add('fa-chevron-down');
+                }
+            }
+        });
+    });
+    
+    // Auto-refresh countdown with AJAX
     var refreshInterval = <?php echo $this->config->item('refresh'); ?>;
     var currentCountdown = refreshInterval;
     
@@ -422,7 +681,8 @@
         }
         
         if (currentCountdown <= 0) {
-            window.location.reload();
+            refreshData(); // Use AJAX instead of reload
+            currentCountdown = refreshInterval; // Reset countdown
         }
     }
     

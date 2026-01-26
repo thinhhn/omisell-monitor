@@ -34,6 +34,14 @@ class Events extends MY_Controller
     }
     
     /**
+     * Alternative method name without underscore (for compatibility)
+     */
+    public function getStats()
+    {
+        $this->get_stats();
+    }
+    
+    /**
      * AJAX: Get event stats (run locally on web server)
      */
     public function get_stats()

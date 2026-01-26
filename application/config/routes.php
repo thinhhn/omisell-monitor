@@ -51,7 +51,12 @@ $route['auth/checkSession'] = "auth/checkSession";
 // Welcome controller routes  
 $route['welcome/ajaxUpdate'] = "welcome/ajaxUpdate";
 $route['welcome/clearCache'] = "welcome/clearCache";
+$route['welcome/getData'] = "welcome/getData";
 $route['clearCache'] = "welcome/clearCache";
+
+// Events controller routes
+$route['events/get_stats'] = "events/get_stats";
+$route['events/getstats'] = "events/get_stats";  // Alternative without underscore
 
 // Cron controller routes
 $route['cron/updateSupervisorData'] = "cron/updateSupervisorData";
