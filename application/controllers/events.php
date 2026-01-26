@@ -46,7 +46,9 @@ class Events extends MY_Controller
      */
     public function get_stats()
     {
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
         
         // Run stat script locally on this server
         $script_path = APPPATH . 'scripts/stat_remote.sh';

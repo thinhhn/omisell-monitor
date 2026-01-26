@@ -177,7 +177,9 @@ class Welcome extends MY_Controller
      */
     public function getData()
     {
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
         
         $this->load->helper('date');
         $servers = $this->config->item('supervisor_servers');
