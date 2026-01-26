@@ -1,12 +1,19 @@
 #!/bin/bash
 
 # --- Cấu hình ---
-# NOTE: Load từ environment variables để tăng cường bảo mật
+# SSH key - try multiple locations
 REMOTE_IP="${REMOTE_CELERY_IP:-10.148.0.26}"
 REMOTE_USER="${REMOTE_CELERY_USER:-thinhhn}"
-KEY_PATH="${REMOTE_CELERY_KEY:-/home/thinhhn/.ssh/id_rsa}"
 CODE_DIR="${REMOTE_CELERY_CODE_DIR:-/data/code/omisell-backend}"
 VENV_CELERY="${REMOTE_CELERY_VENV_CELERY:-/data/venv/omisell3.11/bin/celery}"
+
+# SSH key - try multiple locations
+SSH_KEY=""
+if [ -f ~/.ssh/thinhhn_id_rsa ]; then
+    SSH_KEY="-i ~/.ssh/thinhhn_id_rsa"
+elif [ -f ~/.ssh/id_rsa ]; then
+    SSH_KEY="-i ~/.ssh/id_rsa"
+fi
 
 # Nhận tên queue
 QUEUE_NAME=$1
@@ -22,18 +29,9 @@ if [[ ! "$QUEUE_NAME" =~ ^[a-zA-Z0-9_]+$ ]]; then
     exit 1
 fi
 
-# Security: Kiểm tra key file permissions
-if [ -f "$KEY_PATH" ]; then
-    KEY_PERMS=$(stat -c %a "$KEY_PATH" 2>/dev/null || stat -f %Lp "$KEY_PATH" 2>/dev/null)
-    if [ "$KEY_PERMS" != "600" ] && [ "$KEY_PERMS" != "400" ]; then
-        echo '{"error": "SSH key file has insecure permissions. Should be 600 or 400"}'
-        exit 1
-    fi
-fi
-
 # SSH và thực thi lệnh
 # - Sử dụng python trên server đích để parse kết quả từ CLI của Celery cho chính xác
-ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_CELERY -A omisell.celery purge -Q $QUEUE_NAME -f 2>&1 | python3 -c \"
+ssh $SSH_KEY -o LogLevel=ERROR -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_CELERY -A omisell.celery purge -Q $QUEUE_NAME -f 2>&1 | python3 -c \"
 import sys
 import json
 import re
