@@ -100,14 +100,42 @@ class Events extends MY_Controller
             ]);
             exit;
         } else {
+            // Determine specific error type
+            $error_type = 'Unknown Error';
+            $specific_error = '';
+            
+            if ($return_var !== 0) {
+                // Script execution failed
+                $error_type = 'Script Execution Failed';
+                if (empty($output_string)) {
+                    $specific_error = 'No output from script (return code: ' . $return_var . ')';
+                } else if (strpos($output_string, 'not found') !== false) {
+                    $specific_error = 'Script file not found';
+                    $error_type = 'Script Not Found';
+                } else if (strpos($output_string, 'error') !== false || strpos($output_string, 'Error') !== false) {
+                    $specific_error = $output[0] ?? substr($output_string, 0, 200);
+                } else {
+                    $specific_error = substr($output_string, 0, 200);
+                }
+            } else if (empty($output_string)) {
+                // Script ran but no output
+                $error_type = 'No JSON Output';
+                $specific_error = 'Script executed but produced no output';
+            } else {
+                // Output exists but JSON parsing failed
+                $error_type = 'Failed to Parse Stats';
+                $specific_error = 'Output is not valid JSON: ' . substr($output_string, 0, 100);
+            }
+            
             echo json_encode([
                 'success' => false,
-                'error' => 'Failed to parse stats or script not found',
+                'error' => $error_type,
+                'details' => $specific_error,
                 'command_run' => $command,
                 'return_code' => $return_var,
-                'raw_output' => substr($output_string, 0, 500),
+                'output_length' => strlen($output_string),
                 'first_line' => $output[0] ?? 'NO OUTPUT',
-                'debug_log' => APPPATH . 'logs/get_stats_debug.log'
+                'raw_output' => substr($output_string, 0, 500)
             ]);
             exit;
         }
