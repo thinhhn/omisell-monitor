@@ -436,8 +436,8 @@
     // AJAX Control Action
     function controlAction(action, server, worker) {
         const url = worker 
-            ? `/control/${action}/${server}/${encodeURIComponent(worker)}?ajax=1`
-            : `/control/${action}/${server}?ajax=1`;
+            ? `<?php echo site_url(); ?>/control/${action}/${server}/${encodeURIComponent(worker)}?ajax=1`
+            : `<?php echo site_url(); ?>/control/${action}/${server}?ajax=1`;
         
         const actionNames = {
             'start': 'Starting',
@@ -451,7 +451,14 @@
         const loadingMsg = actionNames[action] || 'Processing';
         showLoading(`${loadingMsg}... Please wait.`);
         
-        fetch(url)
+        fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => {
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
@@ -488,7 +495,14 @@
             refreshBtn.disabled = true;
         }
         
-        fetch('<?php echo site_url("welcome/getData"); ?>')
+        fetch('<?php echo site_url("welcome/getData"); ?>', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.servers) {

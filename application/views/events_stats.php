@@ -88,8 +88,18 @@
         `;
         
         // Fetch stats via AJAX
-        fetch('<?php echo site_url('events/get_stats'); ?>')
-            .then(response => response.json())
+        fetch('<?php echo site_url('events/get_stats'); ?>', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('HTTP error: ' + response.status);
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     displayStats(data);
