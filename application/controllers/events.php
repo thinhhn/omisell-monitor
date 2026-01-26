@@ -63,10 +63,13 @@ class Events extends MY_Controller
             return;
         }
         
-        // Execute command
+        // Execute command with proper error capture
         $output = [];
         $return_var = 0;
-        exec($command, $output, $return_var);
+        // Use APPPATH constant for proper path resolution
+        $script_path = APPPATH . 'scripts/stat_remote.sh';
+        $full_command = "sh " . escapeshellarg($script_path) . " 2>&1";
+        exec($full_command, $output, $return_var);
         
         $output_string = implode("\n", $output);
         

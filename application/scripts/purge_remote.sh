@@ -33,7 +33,7 @@ fi
 
 # SSH và thực thi lệnh
 # - Sử dụng python trên server đích để parse kết quả từ CLI của Celery cho chính xác
-ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -i "$KEY_PATH" "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_CELERY -A omisell.celery purge -Q $QUEUE_NAME -f 2>&1 | python3 -c \"
+ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_CELERY -A omisell.celery purge -Q $QUEUE_NAME -f 2>&1 | python3 -c \"
 import sys
 import json
 import re

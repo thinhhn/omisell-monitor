@@ -1,26 +1,21 @@
 #!/bin/bash
 
 # --- Cấu hình ---
-# NOTE: Các giá trị này nên được load từ config hoặc environment variables
-# Để tăng cường bảo mật, đừng hardcode credentials trong script
-
+# SSH key được config trong ~/.ssh/config, không cần truyền vào
 # Load từ environment variables nếu có
+
 REMOTE_IP="${REMOTE_CELERY_IP:-10.148.0.26}"
 REMOTE_USER="${REMOTE_CELERY_USER:-thinhhn}"
-KEY_PATH="${REMOTE_CELERY_KEY:-/home/thinhhn/.ssh/id_rsa}"
 CODE_DIR="${REMOTE_CELERY_CODE_DIR:-/data/code/omisell-backend}"
 VENV_PYTHON="${REMOTE_CELERY_VENV_PYTHON:-/data/venv/omisell3.11/bin/python}"
 
-# Security: Kiểm tra key file permissions
-if [ -f "$KEY_PATH" ]; then
-    KEY_PERMS=$(stat -c %a "$KEY_PATH" 2>/dev/null || stat -f %Lp "$KEY_PATH" 2>/dev/null)
-    if [ "$KEY_PERMS" != "600" ] && [ "$KEY_PERMS" != "400" ]; then
-        echo '{"error": "SSH key file has insecure permissions. Should be 600 or 400"}' >&2
-        exit 1
-    fi
+# Kiểm tra các biến bắt buộc
+if [ -z "$REMOTE_IP" ] || [ -z "$REMOTE_USER" ] || [ -z "$CODE_DIR" ] || [ -z "$VENV_PYTHON" ]; then
+    echo "{\"error\": \"Missing required environment variables\"}" >&2
+    exit 1
 fi
 
-ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -i $KEY_PATH $REMOTE_USER@$REMOTE_IP "cd $CODE_DIR && sudo $VENV_PYTHON -c \"
+ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_PYTHON -c \"
 import json
 from omisell.celery import app
 
