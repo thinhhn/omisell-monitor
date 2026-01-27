@@ -1,54 +1,51 @@
 #!/bin/bash
 
-# --- Cấu hình ---
-# SSH key được config trong ~/.ssh/config hoặc environment, không cần truyền vào
-# Load từ environment variables nếu có
-
+# --- Configuration ---
 REMOTE_IP="${REMOTE_CELERY_IP:-10.148.0.26}"
 REMOTE_USER="${REMOTE_CELERY_USER:-thinhhn}"
 CODE_DIR="${REMOTE_CELERY_CODE_DIR:-/data/code/omisell-backend}"
 VENV_PYTHON="${REMOTE_CELERY_VENV_PYTHON:-/data/venv/omisell3.11/bin/python}"
 
-# SSH key - try multiple locations
+# SSH key logic
 SSH_KEY=""
-if [ -f ~/.ssh/thinhhn_id_rsa ]; then
-    SSH_KEY="-i ~/.ssh/thinhhn_id_rsa"
-elif [ -f ~/.ssh/id_rsa ]; then
-    SSH_KEY="-i ~/.ssh/id_rsa"
-fi
+[ -f ~/.ssh/thinhhn_id_rsa ] && SSH_KEY="-i ~/.ssh/thinhhn_id_rsa"
+[ -f ~/.ssh/id_rsa ] && [ -z "$SSH_KEY" ] && SSH_KEY="-i ~/.ssh/id_rsa"
 
-# Kiểm tra các biến bắt buộc
-if [ -z "$REMOTE_IP" ] || [ -z "$REMOTE_USER" ] || [ -z "$CODE_DIR" ] || [ -z "$VENV_PYTHON" ]; then
-    echo "{\"error\": \"Missing required environment variables\"}" >&2
-    exit 1
-fi
-
-ssh $SSH_KEY -o LogLevel=ERROR -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_PYTHON -c \"
+ssh $SSH_KEY -o LogLevel=ERROR -o StrictHostKeyChecking=no "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_PYTHON -c \"
 import json
-from omisell.celery import app
+import os
+import django
+from celery import Celery
 
-# Khởi tạo inspect
-ins = app.control.inspect()
+# Setup Django environment
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'omisell.settings')
+django.setup()
 
-# Lấy các task đang chờ xử lý trong queue (đã được worker nhận nhưng chưa chạy)
-reserved = ins.reserved() or {}
-# Lấy các task đang chạy
-active = ins.active() or {}
-# Lấy các task đã lên lịch
-scheduled = ins.scheduled() or {}
+app = Celery('omisell')
+app.config_from_object('django.conf:settings', namespace='CELERY')
 
 stats = {}
 
-def count_tasks(data):
-    for worker, tasks in data.items():
-        for task in tasks:
-            # Lấy tên queue của task
-            q_name = task.get('delivery_info', {}).get('routing_key', 'unknown')
-            stats[q_name] = stats.get(q_name, 0) + 1
+with app.connection_or_acquire() as conn:
+    # 1. Lấy danh sách tất cả các queue đang hoạt động từ Worker
+    i = app.control.inspect()
+    active_queues_map = i.active_queues() or {}
+    
+    unique_queue_names = set()
+    for worker_queues in active_queues_map.values():
+        for q in worker_queues:
+            unique_queue_names.add(q['name'])
 
-count_tasks(reserved)
-count_tasks(active)
-count_tasks(scheduled)
+    # 2. Truy vấn Broker để lấy message_count chính xác (giống logic project)
+    for name in unique_queue_names:
+        try:
+            # passive=True giúp lấy thông tin mà không tạo mới queue
+            ok_nt = conn.default_channel.queue_declare(queue=name, passive=True)
+            count = ok_nt.message_count
+            if count > 0:
+                stats[name] = count
+        except Exception:
+            continue
 
 print(json.dumps(stats, indent=4))
-\"" 2>&1 | grep -A 9999 '^{'
+\""
