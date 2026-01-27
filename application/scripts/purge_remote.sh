@@ -13,34 +13,38 @@ SSH_KEY=""
 
 QUEUE_NAME=$1
 
-# 1. Kiểm tra input để bảo mật
+# 1. Kiểm tra đầu vào
 if [[ -z "$QUEUE_NAME" || ! "$QUEUE_NAME" =~ ^[a-zA-Z0-9_]+$ ]]; then
     echo "{\"error\": \"Invalid or missing queue name\"}"
     exit 1
 fi
 
-# 2. Thực thi lệnh Purge và nhận output về Local
-# Chúng ta dùng '2>&1' để bắt cả lỗi và thông báo thành công
+# 2. Thực thi lệnh Purge và lưu kết quả vào biến
+# Sử dụng 2>&1 để bắt cả output và lỗi
 RAW_OUTPUT=$(ssh $SSH_KEY -o LogLevel=ERROR -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$REMOTE_USER@$REMOTE_IP" "cd $CODE_DIR && sudo $VENV_CELERY -A omisell.celery purge -Q $QUEUE_NAME -f 2>&1")
 
-# 3. Sử dụng Python tại máy Local để parse dữ liệu (Tránh lỗi encoding trên SSH)
-echo "$RAW_OUTPUT" | python3 -c "
+# 3. Sử dụng Heredoc để chạy Python tại máy LOCAL
+# Dấu nháy đơn quanh 'EOF' cực kỳ quan trọng: nó ngăn Bash can thiệp vào nội dung bên trong
+python3 << 'EOF'
 import sys
 import json
 import re
 
-output = sys.stdin.read()
+# Lấy dữ liệu từ biến môi trường Bash để tránh lỗi truyền tham số trực tiếp
+output = """$RAW_OUTPUT"""
+queue_name = "$QUEUE_NAME"
 
-# Parse số lượng từ chuỗi 'Purged X messages'
+# Trích xuất số lượng đã xóa
 match = re.search(r'Purged\s+(\d+)', output)
 purged_count = int(match.group(1)) if match else 0
 
-# Kiểm tra trạng thái thành công
+# Kiểm tra thành công
 success = any(keyword in output for keyword in ['Purged', 'No messages purged'])
 
-print(json.dumps({
-    'queue': '$QUEUE_NAME',
+result = {
+    'queue': queue_name,
     'killed_count': purged_count,
     'success': success
-}))
-"
+}
+print(json.dumps(result))
+EOF
