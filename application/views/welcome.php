@@ -234,14 +234,17 @@
                                     </div>
                                     <?php if (!$has_error): ?>
                                     <div class="flex items-center gap-2 flex-shrink-0">
-                                        <button onclick="controlAction('startall', '<?php echo $server_name; ?>', '', this)" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Start All">
+                                        <button onclick="controlAction('startall', '<?php echo $server_name; ?>', '', this)" class="px-3 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition text-sm font-medium flex items-center gap-2" title="Start All">
                                             <i class="fas fa-play text-sm"></i>
+                                            <span>Start</span>
                                         </button>
-                                        <button onclick="controlAction('restartall', '<?php echo $server_name; ?>', '', this)" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Restart All">
+                                        <button onclick="controlAction('restartall', '<?php echo $server_name; ?>', '', this)" class="px-3 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition text-sm font-medium flex items-center gap-2" title="Restart All">
                                             <i class="fas fa-redo text-sm"></i>
+                                            <span>Restart</span>
                                         </button>
-                                        <button onclick="controlAction('stopall', '<?php echo $server_name; ?>', '', this)" class="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition" title="Stop All">
+                                        <button onclick="controlAction('stopall', '<?php echo $server_name; ?>', '', this)" class="px-3 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition text-sm font-medium flex items-center gap-2" title="Stop All">
                                             <i class="fas fa-stop text-sm"></i>
+                                            <span>Stop</span>
                                         </button>
                                     </div>
                                     <?php endif; ?>

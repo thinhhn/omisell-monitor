@@ -219,13 +219,154 @@
         `;
     }
     
-    // Kill process
+    // Kill process with styled confirmation dialog
     function killProcess(processName) {
-        if (!confirm(`Are you sure you want to KILL process "${processName}"?\n\nThis will force terminate the process immediately.`)) {
-            return;
+        showConfirmDialog(
+            `Kill Process`,
+            `Are you sure you want to KILL process "<strong>${escapeHtml(processName)}</strong>"?<br><br>This will force terminate the process immediately.`,
+            () => executeKill(processName)
+        );
+    }
+    
+    // Execute kill action
+    function executeKill(processName) {
+        // Show loading state
+        showLoading(`Killing process "${processName}"...`);
+        
+        // Execute kill action via AJAX
+        fetch(`<?php echo site_url('events/kill'); ?>/${encodeURIComponent(processName)}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('HTTP error: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showNotification('Process killed successfully', 'success');
+                    // Reload stats after 1 second
+                    setTimeout(() => loadStats(), 1000);
+                } else {
+                    showNotification(data.message || 'Failed to kill process', 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showNotification('Error: ' + error.message, 'error');
+                console.error('Kill process error:', error);
+            });
+    }
+    
+    // Show styled confirmation dialog
+    function showConfirmDialog(title, message, onConfirm, onCancel = null) {
+        // Remove existing dialog if any
+        const existingDialog = document.getElementById('confirm-dialog');
+        if (existingDialog) {
+            existingDialog.remove();
         }
         
-        window.location.href = `<?php echo site_url('events/kill'); ?>/${encodeURIComponent(processName)}`;
+        // Create dialog overlay
+        const dialogOverlay = document.createElement('div');
+        dialogOverlay.id = 'confirm-dialog';
+        dialogOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]';
+        
+        dialogOverlay.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fas fa-exclamation-circle"></i>
+                        ${escapeHtml(title)}
+                    </h3>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-6">
+                    <p class="text-slate-700 mb-6">${message}</p>
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex gap-3 p-4 bg-slate-50 border-t border-slate-200 rounded-b-lg">
+                    <button onclick="document.getElementById('confirm-dialog').remove()" 
+                            class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-100 transition">
+                        Cancel
+                    </button>
+                    <button onclick="confirmDialogAction()" 
+                            class="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition">
+                        <i class="fas fa-skull-crossbones mr-2"></i>Kill
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Store the callback
+        window._confirmDialogCallback = onConfirm;
+        window._confirmDialogCancelCallback = onCancel;
+        
+        document.body.appendChild(dialogOverlay);
+        
+        // Close dialog on overlay click
+        dialogOverlay.addEventListener('click', (e) => {
+            if (e.target === dialogOverlay) {
+                dialogOverlay.remove();
+                if (onCancel) onCancel();
+            }
+        });
+    }
+    
+    // Execute confirmed action
+    function confirmDialogAction() {
+        const dialog = document.getElementById('confirm-dialog');
+        if (dialog) {
+            dialog.remove();
+        }
+        if (window._confirmDialogCallback) {
+            window._confirmDialogCallback();
+        }
+    }
+    
+    // Show loading overlay
+    function showLoading(message = 'Processing...') {
+        let overlay = document.getElementById('loading-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'loading-overlay';
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+            overlay.innerHTML = `
+                <div class="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center gap-4">
+                    <div class="loading-spinner mb-2"></div>
+                    <p class="text-slate-700 font-medium" id="loading-message">${message}</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        } else {
+            document.getElementById('loading-message').textContent = message;
+            overlay.classList.remove('hidden');
+        }
+    }
+    
+    // Hide loading overlay
+    function hideLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+    }
+    
+    // Show notification toast
+    function showNotification(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-20 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>${message}`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
     }
     
     // Escape HTML

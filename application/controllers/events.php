@@ -155,6 +155,9 @@ class Events extends MY_Controller
      */
     public function kill($process_name)
     {
+        // Check if this is an AJAX request
+        $is_ajax = $this->input->is_ajax_request() || $this->input->get('ajax') === '1';
+        
         // Security: Log attempt
         $this->security_helper->log_security_event('KILL_ATTEMPT', [
             'process_name' => $process_name,
@@ -165,6 +168,14 @@ class Events extends MY_Controller
         // Security: Check rate limit
         $rate_check = $this->security_helper->check_rate_limit('kill');
         if (!$rate_check['allowed']) {
+            if ($is_ajax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => $rate_check['error']
+                ]);
+                exit;
+            }
             $this->session->set_flashdata('error', $rate_check['error']);
             redirect('events');
             return;
@@ -177,6 +188,14 @@ class Events extends MY_Controller
                 'process_name' => $process_name,
                 'error' => $validation['error']
             ]);
+            if ($is_ajax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Security: ' . $validation['error']
+                ]);
+                exit;
+            }
             $this->session->set_flashdata('error', 'Security: ' . $validation['error']);
             redirect('events');
             return;
@@ -189,6 +208,14 @@ class Events extends MY_Controller
         
         // Check if script exists
         if (!file_exists($script_path)) {
+            if ($is_ajax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Script not found: $script_path"
+                ]);
+                exit;
+            }
             $this->session->set_flashdata('error', "Script not found: $script_path");
             redirect('events');
             return;
@@ -203,20 +230,40 @@ class Events extends MY_Controller
         $return_var = 0;
         exec($command, $output, $return_var);
         
-        // Log result
+        // Log result and handle response
         if ($return_var === 0) {
             $this->security_helper->log_security_event('KILL_SUCCESS', [
                 'process_name' => $sanitized_name,
                 'output' => implode(", ", $output)
             ]);
-            $this->session->set_flashdata('success', "Process $sanitized_name killed successfully. Output: " . implode(", ", $output));
+            $success_message = "Process $sanitized_name killed successfully. Output: " . implode(", ", $output);
+            
+            if ($is_ajax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => true,
+                    'message' => $success_message
+                ]);
+                exit;
+            }
+            $this->session->set_flashdata('success', $success_message);
         } else {
             $this->security_helper->log_security_event('KILL_FAILED', [
                 'process_name' => $sanitized_name,
                 'return_code' => $return_var,
                 'output' => implode(", ", $output)
             ]);
-            $this->session->set_flashdata('error', "Failed to kill $sanitized_name. Output: " . implode(", ", $output));
+            $error_message = "Failed to kill $sanitized_name. Output: " . implode(", ", $output);
+            
+            if ($is_ajax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'message' => $error_message
+                ]);
+                exit;
+            }
+            $this->session->set_flashdata('error', $error_message);
         }
         
         redirect('events');
