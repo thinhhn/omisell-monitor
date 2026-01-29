@@ -74,6 +74,39 @@
     </div>
 
     <script>
+    // Check if response indicates auth error
+    function checkAuthError(data) {
+        // Check for various auth-related indicators
+        if (data.auth_error || data.error_code === 'AUTH_ERROR' || data.error_code === 'UNAUTHORIZED') {
+            redirectToLogin('Your session has expired. Please login again.');
+            return true;
+        }
+        
+        // Check if response contains login page HTML (common redirect indicator)
+        if (data instanceof Object && data.html && data.html.includes('login')) {
+            redirectToLogin('Your session has expired. Please login again.');
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Redirect to login page
+    function redirectToLogin(message = 'Session expired. Redirecting to login...') {
+        hideLoading();
+        
+        // Show notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-20 right-4 px-6 py-3 rounded-lg shadow-lg text-white bg-orange-500 z-50 flex items-center gap-2';
+        toast.innerHTML = `<i class="fas fa-lock mr-2"></i>${message}`;
+        document.body.appendChild(toast);
+        
+        // Redirect after 2 seconds
+        setTimeout(() => {
+            window.location.href = '<?php echo site_url('auth/login'); ?>';
+        }, 2000);
+    }
+    
     // Load stats (single call)
     function loadStats() {
         const container = document.getElementById('stats-container');
@@ -95,10 +128,20 @@
             }
         })
             .then(response => {
+                // Check for 401 Unauthorized (auth expired)
+                if (response.status === 401) {
+                    redirectToLogin('Your session has expired. Please login again.');
+                    return null;
+                }
                 if (!response.ok) throw new Error('HTTP error: ' + response.status);
                 return response.json();
             })
             .then(data => {
+                if (data === null) return; // Already handled in .then above
+                
+                // Check for auth errors in response
+                if (checkAuthError(data)) return;
+                
                 if (data.success) {
                     displayStats(data);
                 } else {
@@ -241,10 +284,20 @@
             }
         })
             .then(response => {
+                // Check for 401 Unauthorized (auth expired)
+                if (response.status === 401) {
+                    redirectToLogin('Your session has expired. Please login again.');
+                    return null;
+                }
                 if (!response.ok) throw new Error('HTTP error: ' + response.status);
                 return response.json();
             })
             .then(data => {
+                if (data === null) return; // Already handled in .then above
+                
+                // Check for auth errors in response
+                if (checkAuthError(data)) return;
+                
                 hideLoading();
                 if (data.success) {
                     showNotification('Process killed successfully', 'success');

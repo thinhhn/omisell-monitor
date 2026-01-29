@@ -474,6 +474,40 @@
         }
     }
     
+    // Check if response indicates auth error
+    function checkAuthError(data) {
+        // Check for various auth-related indicators
+        if (data.auth_error || data.error_code === 'AUTH_ERROR' || data.error_code === 'UNAUTHORIZED') {
+            redirectToLogin('Your session has expired. Please login again.');
+            return true;
+        }
+        
+        // Check if response contains login page HTML (common redirect indicator)
+        if (data instanceof Object && data.html && data.html.includes('login')) {
+            redirectToLogin('Your session has expired. Please login again.');
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Redirect to login page
+    function redirectToLogin(message = 'Session expired. Redirecting to login...') {
+        hideLoading();
+        hideActionLoading(window._lastActionButton);
+        
+        // Show notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-20 right-4 px-6 py-3 rounded-lg shadow-lg text-white bg-orange-500 z-50 flex items-center gap-2';
+        toast.innerHTML = `<i class="fas fa-lock mr-2"></i>${message}`;
+        document.body.appendChild(toast);
+        
+        // Redirect after 2 seconds
+        setTimeout(() => {
+            window.location.href = '<?php echo site_url('auth/login'); ?>';
+        }, 2000);
+    }
+    
     // AJAX Control Action with improved error handling and timeout
     function controlAction(action, server, worker, buttonElement) {
         const url = worker 
@@ -487,6 +521,7 @@
         
         // Show loading on button
         showActionLoading(buttonElement, `${actionLabel} in progress...`);
+        window._lastActionButton = buttonElement;
         
         // Create abort controller for timeout
         const controller = new AbortController();
@@ -502,6 +537,12 @@
         })
             .then(response => {
                 clearTimeout(timeoutId);
+                
+                // Check for 401 Unauthorized (auth expired)
+                if (response.status === 401) {
+                    redirectToLogin('Your session has expired. Please login again.');
+                    return null;
+                }
                 
                 // Check response status
                 if (!response.ok) {
@@ -529,7 +570,12 @@
                 return response.json();
             })
             .then(data => {
+                if (data === null) return; // Already handled in .then above
+                
                 hideActionLoading(buttonElement);
+                
+                // Check for auth errors in response
+                if (checkAuthError(data)) return;
                 
                 // Verify data is object with success property
                 if (typeof data !== 'object' || data === null) {
@@ -579,8 +625,21 @@
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-            .then(response => response.json())
+            .then(response => {
+                // Check for 401 Unauthorized (auth expired)
+                if (response.status === 401) {
+                    redirectToLogin('Your session has expired. Please login again.');
+                    return null;
+                }
+                if (!response.ok) throw new Error('HTTP error: ' + response.status);
+                return response.json();
+            })
             .then(data => {
+                if (data === null) return; // Already handled in .then above
+                
+                // Check for auth errors in response
+                if (checkAuthError(data)) return;
+                
                 if (data.success && data.servers) {
                     updateServerData(data.servers);
                     console.log('Data refreshed successfully');
