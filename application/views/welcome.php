@@ -47,7 +47,7 @@
             'servers' => [
                 'web' => ['web_001', 'web_002'],
                 'celery' => ['celery_hook', 'celery_001', 'celery_002', 'celery_003', 'celery_004'],
-                'celery_tam' => ['celery_006', 'celery_007']
+                'celery_tam' => ['celery_005', 'celery_006', 'celery_007']
             ]
         ],
         'Omni Platform' => [
