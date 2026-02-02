@@ -304,6 +304,10 @@
                                                 <div class="text-xs text-slate-400 mt-2 uptime-cell">
                                                     <i class="fas fa-clock mr-1"></i><?php echo $uptime; ?>
                                                 </div>
+                                                <?php else: ?>
+                                                <div class="text-xs text-slate-400 mt-2 uptime-cell">
+                                                    <i class="fas fa-clock mr-1"></i> N/A
+                                                </div>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="p-3 text-right">
