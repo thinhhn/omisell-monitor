@@ -81,25 +81,25 @@ $config['supervisor_servers'] = array(
                 'username' => 'thinhhn',
                 'password' => 'thinh49121',
         ),
-	'celery_005' => array(
-              'url' => 'http://10.148.0.17',
-              'port' => 9001,
-              'username' => 'thinhhn',
-              'password' => 'thinh49121'
-        ),
-        'celery_006' => array(
-              'url' => 'http://10.148.0.18',
-              'port' => 9001,
-              'username' => 'thinhhn',
-              'password' => 'thinh49121'
-        ),
-        'celery_007' => array(
-              'url' => 'http://10.148.0.19',
-              'port' => 9001,
-              'username' => 'thinhhn',
-              'password' => 'thinh49121',
-	      'is_break' => true
-        ),
+	// 'celery_005' => array(
+        //       'url' => 'http://10.148.0.17',
+        //       'port' => 9001,
+        //       'username' => 'thinhhn',
+        //       'password' => 'thinh49121'
+        // ),
+        // 'celery_006' => array(
+        //       'url' => 'http://10.148.0.18',
+        //       'port' => 9001,
+        //       'username' => 'thinhhn',
+        //       'password' => 'thinh49121'
+        // ),
+        // 'celery_007' => array(
+        //       'url' => 'http://10.148.0.19',
+        //       'port' => 9001,
+        //       'username' => 'thinhhn',
+        //       'password' => 'thinh49121',
+	//       'is_break' => true
+        // ),
 	
 	// Omni servers
 	'web_omni_001' => array(
