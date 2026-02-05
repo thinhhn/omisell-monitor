@@ -301,15 +301,10 @@
                                         <tr class="hover:bg-slate-50" id="<?php echo $row_id; ?>">
                                             <td class="p-3">
                                                 <div class="font-medium text-slate-700"><?php echo htmlspecialchars($item_name); ?></div>
-                                                <?php if ($uptime): ?>
                                                 <div class="text-xs text-slate-400 mt-2 uptime-cell">
-                                                    <i class="fas fa-clock mr-1"></i><?php echo $uptime; ?>
+                                                    <i class="fas fa-clock mr-1"></i>
+                                                    <?php if ($uptime): echo $uptime; else: ?>N/A<?php endif; ?>
                                                 </div>
-                                                <?php else: ?>
-                                                <div class="text-xs text-slate-400 mt-2 uptime-cell">
-                                                    <i class="fas fa-clock mr-1"></i> N/A
-                                                </div>
-                                                <?php endif; ?>
                                             </td>
                                             <td class="p-3 text-right">
                                                 <div class="inline-block text-left">
