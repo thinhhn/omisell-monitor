@@ -81,12 +81,12 @@ $config['supervisor_servers'] = array(
                 'username' => 'thinhhn',
                 'password' => 'thinh49121',
         ),
-	// 'celery_005' => array(
-        //       'url' => 'http://10.148.0.17',
-        //       'port' => 9001,
-        //       'username' => 'thinhhn',
-        //       'password' => 'thinh49121'
-        // ),
+	'celery_005' => array(
+              'url' => 'http://10.148.0.17',
+              'port' => 9001,
+              'username' => 'thinhhn',
+              'password' => 'thinh49121'
+        ),
         // 'celery_006' => array(
         //       'url' => 'http://10.148.0.18',
         //       'port' => 9001,
